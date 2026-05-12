@@ -50,6 +50,11 @@ export const menuItems = pgTable('menu_items', {
   price: numeric('price', { precision: 12, scale: 2 }).notNull(),
   imageUrl: text('image_url'),
   isAvailable: boolean('is_available').default(true).notNull(),
+  isDailySpecial: boolean('is_daily_special').default(false).notNull(),
+  isSpicy: boolean('is_spicy').default(false).notNull(),
+  isVegetarian: boolean('is_vegetarian').default(false).notNull(), // Critical for fasting days
+  estimatedPrepTime: integer('estimated_prep_time'), // in minutes
+  tags: text('tags').array(), // ['Chef Choice', 'New', 'Bestseller']
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

@@ -39,6 +39,10 @@ async function seed() {
       descriptionAm: 'የተለያዩ የምስር እና የአትክልት ወጥዎች ያሉበት የሀበሻ በያይነቱ።',
       price: '350.00',
       isAvailable: true,
+      isVegetarian: true,
+      isDailySpecial: true,
+      estimatedPrepTime: 15,
+      tags: ['Traditional', 'Popular'],
     },
     {
       hotelId: hotel.id,
@@ -49,6 +53,10 @@ async function seed() {
       descriptionAm: 'የሀበሻ ባህላዊ የዶሮ ወጥ ከእንቁላል ጋር።',
       price: '550.00',
       isAvailable: true,
+      isSpicy: true,
+      isVegetarian: false,
+      estimatedPrepTime: 20,
+      tags: ['Chef Choice'],
     },
     {
       hotelId: hotel.id,
@@ -57,6 +65,7 @@ async function seed() {
       nameAm: 'ሀበሻ ቢራ',
       price: '80.00',
       isAvailable: true,
+      tags: ['Cold'],
     }
   ]);
 
