@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
 import { db } from "@/db";
 import { hotelUsers, hotels } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 export async function getSession() {
   const cookieStore = await cookies();
@@ -22,22 +22,41 @@ export async function getSession() {
 }
 
 export async function getUserRole() {
-  const { data: { user } } = await getSession();
-  
-  if (!user) return null;
+  const session = await getSession();
+  const user = session?.data?.user;
 
-  const [roleInfo] = await db
-    .select({
-      role: hotelUsers.role,
-      hotelId: hotelUsers.hotelId,
-      hotelName: hotels.name,
-    })
-    .from(hotelUsers)
-    .innerJoin(hotels, eq(hotels.id, hotelUsers.hotelId))
-    .where(eq(hotelUsers.userId, user.id))
-    .limit(1);
+  if (!user) {
+    console.log("⚠️ [getUserRole] No session user found");
+    return null;
+  }
 
-  return roleInfo || null;
+  try {
+    const results = await db
+      .select({
+        role: hotelUsers.role,
+        hotelId: hotelUsers.hotelId,
+        hotelName: hotels.name,
+      })
+      .from(hotelUsers)
+      .leftJoin(hotels, eq(hotels.id, hotelUsers.hotelId))
+      .where(eq(hotelUsers.userId, user.id))
+      .orderBy(sql`CASE WHEN ${hotelUsers.role} = 'platform_admin' THEN 0 
+                        WHEN ${hotelUsers.role} = 'owner' THEN 1 
+                        WHEN ${hotelUsers.role} = 'manager' THEN 2 
+                        ELSE 3 END`);
+
+    console.log(`🔍 [getUserRole] Query results for ${user.email}:`, results);
+
+    if (!results || results.length === 0) {
+      console.log(`❌ [getUserRole] No role entry found for user ${user.id} (${user.email})`);
+      return null;
+    }
+
+    return results[0];
+  } catch (error) {
+    console.error("❌ [getUserRole] DB query failed:", error);
+    return null;
+  }
 }
 
 export async function isHotelAdmin() {

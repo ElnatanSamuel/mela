@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🍽️ Mela — Hotel Menu & Payment System
 
-## Getting Started
+**Mela** is a high-performance, multi-tenant hospitality platform designed specifically for the Ethiopian market. It enables hotels to offer a seamless scan-to-order experience with real-time merchant dashboards and local payment integration.
 
-First, run the development server:
+---
+
+## 🏗️ Architecture: The "All-in-One" Repo
+This project is a unified Full-Stack Monolith built with **Next.js 15**. It manages the entire ecosystem in a single codebase:
+
+- **Merchant Dashboard**: `/src/app/(dashboard)` — Secure "Command Center" for hotel staff.
+- **Customer QR Menu**: `/src/app/(customer)` — Ultra-fast, mobile-first PWA for diners.
+- **Shared Backend**: `/src/app/api` — Secure API routes for orders, payments, and QR generation.
+- **Database Layer**: `/src/db` — Multi-tenant PostgreSQL schema with Drizzle ORM.
+
+---
+
+## 🚀 Tech Stack
+| Layer | Technology |
+|-------|-----------|
+| **Framework** | Next.js 15 (App Router) |
+| **Database** | Supabase (PostgreSQL) |
+| **ORM** | Drizzle ORM |
+| **Real-time** | Supabase Realtime (WebSockets) |
+| **Styling** | Tailwind CSS (Linear-style Dark Mode) |
+| **State** | TanStack Query + Zustand |
+| **Auth** | Supabase Auth + SSR Middleware |
+| **Payments** | Chapa API (Ethiopian Market Leader) |
+
+---
+
+## 🛠️ Getting Started
+
+### 1. Prerequisites
+- Node.js 18+
+- A Supabase Project ([database.new](https://database.new))
+
+### 2. Setup Environment
+Copy `.env.example` to `.env` and fill in your Supabase credentials.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Initialize Database
+```bash
+# Install dependencies
+npm install
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+# Push schema to Supabase
+npm run db:push
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Load demo data (Habesha Palace)
+npm run db:seed
+```
 
-## Learn More
+### 4. Enable Real-time
+Go to your **Supabase Dashboard > Database > Replication** and enable replication for the `orders` table. This is required for the Live Order Board to function.
 
-To learn more about Next.js, take a look at the following resources:
+### 5. Run Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000/dashboard](http://localhost:3000/dashboard) to view the Merchant Command Center.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🔐 Security & Multi-Tenancy
+- **Row Level Security (RLS)**: Data is strictly isolated. Users from Hotel A can never access data from Hotel B.
+- **RBAC**: Different access levels for `owner`, `manager`, and `waiter`.
+- **Server-Side Validation**: All operations are verified against the user's secure session on the server.
 
-## Deploy on Vercel
+## 🇪🇹 Local Features
+- **Amharic Support**: Full localization for menu items and categories.
+- **Fast Food Logic**: Built-in `isVegetarian` support for Ethiopian fasting days.
+- **Local Tax Compliance**: Automated 15% VAT and 10% Service Charge calculation.
+- **Payment Integration**: Support for Telebirr, CBE Birr, and Chapa.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+*Designed for the future of Ethiopian hospitality.*

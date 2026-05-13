@@ -8,10 +8,14 @@ export default async function TablesPage() {
   if (!roleInfo) redirect("/auth/login");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <div>
-        <h2 className="text-2xl font-black text-white tracking-tight">Table Management</h2>
-        <p className="text-sm text-neutral-500 mt-1">Register your tables and generate scan-to-order QR codes.</p>
+        <h2 className="text-2xl font-bold text-neutral-900 tracking-tighter uppercase">
+          Table Management
+        </h2>
+        <p className="text-sm text-neutral-500 mt-1 font-medium">
+          Register your tables and generate scan-to-order QR codes.
+        </p>
       </div>
       <TableManager hotelId={roleInfo.hotelId} />
     </div>

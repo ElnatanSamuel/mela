@@ -1,59 +1,63 @@
 "use client";
 
 import React from "react";
-import { usePathname } from "next/navigation";
-import { Bell, LogOut, Search } from "lucide-react";
-import { signOut } from "@/lib/actions";
+import { usePathname, useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 interface DashboardHeaderProps {
   hotelName: string;
   role: string;
 }
 
-export default function DashboardHeader({ hotelName, role }: DashboardHeaderProps) {
+export default function DashboardHeader({
+  hotelName,
+  role,
+}: DashboardHeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push("/auth/login");
+    router.refresh();
+  };
 
   const getPageTitle = () => {
-    if (pathname.includes("/orders")) return "Order Management";
-    if (pathname.includes("/menu")) return "Menu Items";
-    if (pathname.includes("/analytics")) return "Financial Insights";
-    if (pathname === "/dashboard") return "Overview";
-    return "Dashboard";
+    const path = pathname.split("/").pop();
+    switch (path) {
+      case "dashboard":
+        return "Overview";
+      case "orders":
+        return "Live Orders";
+      case "menu":
+        return "Menu"; // Renamed from Menu Manager
+      case "tables":
+        return "Tables & QR";
+      case "analytics":
+        return "Performance";
+      default:
+        return "Dashboard";
+    }
   };
 
   return (
-    <header className="h-16 border-b border-white/5 flex items-center justify-between px-8 bg-[#0a0a0a]/80 backdrop-blur-xl z-40 sticky top-0">
+    <header className="h-20 border-b border-neutral-200 bg-white/80 backdrop-blur-md sticky top-0 z-40 px-8 flex items-center justify-between">
       <div className="flex items-center gap-8">
         <div className="flex flex-col">
-          <h1 className="text-sm font-bold text-white tracking-tight">
+          <h1 className="text-xl font-black text-neutral-900 uppercase tracking-tighter leading-none mb-1">
             {getPageTitle()}
           </h1>
-          <span className="text-[10px] text-neutral-500 font-medium uppercase tracking-widest">
+          <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
             {hotelName}
           </span>
         </div>
-
-        <div className="hidden md:flex relative group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-600 group-focus-within:text-white transition-colors" />
-          <input 
-            type="text" 
-            placeholder="Search dashboard..." 
-            className="bg-white/5 border border-white/5 rounded-full py-1.5 pl-9 pr-4 text-xs text-white focus:outline-none focus:border-white/20 focus:bg-white/10 transition-all w-64"
-          />
-        </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        <button className="relative p-2 text-neutral-400 hover:text-white transition-colors bg-white/5 rounded-lg border border-white/5">
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-blue-500 rounded-full border border-[#0a0a0a] animate-pulse"></span>
-        </button>
-
-        <div className="h-8 w-px bg-white/10 mx-2"></div>
-
-        <button 
-          onClick={() => signOut()}
-          className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-red-400 hover:text-red-300 transition-colors bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 rounded-lg group"
+      <div className="flex items-center gap-1">
+        <button
+          onClick={handleSignOut}
+          className="flex items-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-widest text-red-600 hover:text-white hover:bg-red-600 transition-all border border-red-100 hover:border-red-600 rounded-[6px] group"
         >
           <LogOut className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
           Sign Out

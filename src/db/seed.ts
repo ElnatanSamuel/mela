@@ -1,85 +1,90 @@
 import { db } from './index';
-import { hotels, categories, menuItems, tables } from './schema';
+import { hotels, categories, menuItems, tables, hotelUsers } from './schema';
 
 async function seed() {
   console.log('🌱 Seeding database...');
 
-  // 1. Create a Hotel
-  const [hotel] = await db.insert(hotels).values({
-    name: 'Habesha Palace',
-    slug: 'habesha-palace',
-    location: 'Bole, Addis Ababa',
-    phone: '+251911000000',
-    settings: { vatRate: 0.15, serviceChargeRate: 0.10 },
-  }).returning();
+  try {
+    // 1. Create a Demo Hotel
+    const [hotel] = await db.insert(hotels).values({
+      name: 'Habesha Palace',
+      slug: 'habesha-palace',
+      location: 'Bole, Addis Ababa',
+      phone: '+251911000000',
+    }).returning();
 
-  // 2. Create Categories
-  const [foodCat] = await db.insert(categories).values({
-    hotelId: hotel.id,
-    name: 'Main Dishes',
-    nameAm: 'ዋና ምግቦች',
-    priority: 1,
-  }).returning();
+    console.log('✅ Created Hotel:', hotel.name);
 
-  const [drinksCat] = await db.insert(categories).values({
-    hotelId: hotel.id,
-    name: 'Drinks',
-    nameAm: 'መጠጦች',
-    priority: 2,
-  }).returning();
-
-  // 3. Create Menu Items
-  await db.insert(menuItems).values([
-    {
+    // 2. Create Categories
+    const [cat1] = await db.insert(categories).values({
       hotelId: hotel.id,
-      categoryId: foodCat.id,
-      name: 'Special Beyaynetu',
-      nameAm: 'ልዩ በያይነቱ',
-      description: 'A traditional platter with various lentil and vegetable stews.',
-      descriptionAm: 'የተለያዩ የምስር እና የአትክልት ወጥዎች ያሉበት የሀበሻ በያይነቱ።',
-      price: '350.00',
-      isAvailable: true,
-      isVegetarian: true,
-      isDailySpecial: true,
-      estimatedPrepTime: 15,
-      tags: ['Traditional', 'Popular'],
-    },
-    {
-      hotelId: hotel.id,
-      categoryId: foodCat.id,
-      name: 'Doro Wat',
-      nameAm: 'ዶሮ ወጥ',
-      description: 'Traditional Ethiopian chicken stew with boiled eggs.',
-      descriptionAm: 'የሀበሻ ባህላዊ የዶሮ ወጥ ከእንቁላል ጋር።',
-      price: '550.00',
-      isAvailable: true,
-      isSpicy: true,
-      isVegetarian: false,
-      estimatedPrepTime: 20,
-      tags: ['Chef Choice'],
-    },
-    {
-      hotelId: hotel.id,
-      categoryId: drinksCat.id,
-      name: 'Habesha Beer',
-      nameAm: 'ሀበሻ ቢራ',
-      price: '80.00',
-      isAvailable: true,
-      tags: ['Cold'],
-    }
-  ]);
+      name: 'Main Dishes',
+      nameAm: 'ዋና ምግቦች',
+      priority: 1,
+    }).returning();
 
-  // 4. Create Tables
-  await db.insert(tables).values([
-    { hotelId: hotel.id, tableNumber: '1' },
-    { hotelId: hotel.id, tableNumber: '2' },
-    { hotelId: hotel.id, tableNumber: 'VIP-1' },
-  ]);
+    const [cat2] = await db.insert(categories).values({
+      hotelId: hotel.id,
+      name: 'Drinks',
+      nameAm: 'መጠጦች',
+      priority: 2,
+    }).returning();
 
-  console.log('✅ Seeding complete!');
+    // 3. Create Menu Items
+    await db.insert(menuItems).values([
+      {
+        hotelId: hotel.id,
+        categoryId: cat1.id,
+        name: 'Special Kitfo',
+        nameAm: 'ልዩ ክትፎ',
+        description: 'Traditional minced beef with spiced butter and ayib.',
+        price: '450.00',
+        isDailySpecial: true,
+        isSpicy: true,
+      },
+      {
+        hotelId: hotel.id,
+        categoryId: cat1.id,
+        name: 'Doro Wat',
+        nameAm: 'ዶሮ ወጥ',
+        description: 'Traditional chicken stew with boiled eggs.',
+        price: '550.00',
+        isSpicy: true,
+      },
+      {
+        hotelId: hotel.id,
+        categoryId: cat2.id,
+        name: 'Tej (Large)',
+        nameAm: 'ጠጅ (ትልቅ)',
+        description: 'Traditional honey wine.',
+        price: '120.00',
+      },
+    ]);
+
+    // 4. Create Tables
+    await db.insert(tables).values([
+      { hotelId: hotel.id, tableNumber: '1' },
+      { hotelId: hotel.id, tableNumber: '2' },
+      { hotelId: hotel.id, tableNumber: 'VIP-1' },
+    ]);
+
+    console.log('✅ Created Menu & Tables');
+
+    console.log('\n--- 🔑 ACCOUNT SETUP GUIDE ---');
+    console.log('1. Go to Supabase Dashboard > Authentication');
+    console.log('2. Create 3 users with any password:');
+    console.log('   - admin@mela.com (System Admin)');
+    console.log('   - manager@hotel.com (Hotel Manager)');
+    console.log('   - staff@hotel.com (Waiter)');
+    console.log('\n3. Copy their User IDs and link them manually for now.');
+    console.log('-------------------------------\n');
+
+    console.log('✅ Seeding complete!');
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Seeding failed:', error);
+    process.exit(1);
+  }
 }
 
-seed().catch((err) => {
-  console.error('❌ Seeding failed:', err);
-  process.exit(1);
-});
+seed();

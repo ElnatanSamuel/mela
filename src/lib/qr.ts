@@ -1,10 +1,10 @@
 import QRCode from 'qrcode';
 
-export async function generateTableQR(hotelId: string, tableId: string) {
+export async function generateTableQR(hotelSlug: string, tableId: string) {
   // The URL the customer scans
   // In production, this would be your real domain
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const url = `${baseUrl}/menu/${hotelId}/${tableId}`;
+  const url = `${baseUrl}/guest/${hotelSlug}/${tableId}`;
   
   try {
     const qrDataUrl = await QRCode.toDataURL(url, {

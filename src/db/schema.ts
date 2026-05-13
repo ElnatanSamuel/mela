@@ -23,9 +23,9 @@ export const hotels = pgTable('hotels', {
 // Link users (Managers/Staff) to Hotels
 export const hotelUsers = pgTable('hotel_users', {
   id: uuid('id').primaryKey().defaultRandom(),
-  hotelId: uuid('hotel_id').references(() => hotels.id, { onDelete: 'cascade' }).notNull(),
+  hotelId: uuid('hotel_id').references(() => hotels.id, { onDelete: 'cascade' }), // Nullable for platform_admin
   userId: uuid('user_id').notNull(), // Links to auth.users.id in Supabase
-  role: text('role', { enum: ['owner', 'manager', 'waiter'] }).default('manager').notNull(),
+  role: text('role', { enum: ['owner', 'manager', 'waiter', 'platform_admin'] }).default('manager').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -42,7 +42,7 @@ export const categories = pgTable('categories', {
 export const menuItems = pgTable('menu_items', {
   id: uuid('id').primaryKey().defaultRandom(),
   hotelId: uuid('hotel_id').references(() => hotels.id, { onDelete: 'cascade' }).notNull(),
-  categoryId: uuid('category_id').references(() => categories.id).notNull(),
+  categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'cascade' }).notNull(),
   name: text('name').notNull(),
   nameAm: text('name_am'), // Amharic name
   description: text('description'),

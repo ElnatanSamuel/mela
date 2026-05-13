@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { tables } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { tables, hotels } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { getUserRole } from "@/lib/auth-utils";
 
 export async function GET() {
@@ -9,8 +9,13 @@ export async function GET() {
   if (!roleInfo) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const hotelTables = await db
-    .select()
+    .select({
+      id: tables.id,
+      tableNumber: tables.tableNumber,
+      hotelSlug: hotels.slug,
+    })
     .from(tables)
+    .innerJoin(hotels, eq(tables.hotelId, hotels.id))
     .where(eq(tables.hotelId, roleInfo.hotelId));
 
   return NextResponse.json(hotelTables);

@@ -6,13 +6,13 @@ import { getUserRole } from "@/lib/auth-utils";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const roleInfo = await getUserRole();
   if (!roleInfo) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { status } = await req.json();
-  const orderId = params.id;
+  const { id: orderId } = await params;
 
   const [updatedOrder] = await db
     .update(orders)

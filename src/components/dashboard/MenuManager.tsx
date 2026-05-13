@@ -1,19 +1,21 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatCurrency, cn } from "@/lib/utils";
-import { 
-  Plus, 
-  Search, 
-  MoreVertical, 
-  Edit2, 
-  Trash2, 
+import { supabase } from "@/lib/supabase";
+import {
+  Plus,
+  Search,
+  Edit2,
+  Trash2,
   Power,
-  Flame,
-  Leaf,
-  Star
+  Loader2,
+  Settings2,
+  Image as ImageIcon,
 } from "lucide-react";
+import MenuManagerSkeleton from "./MenuManagerSkeleton";
+import { Modal } from "@/components/ui/Modal";
 
 interface MenuItem {
   id: string;
@@ -25,165 +27,522 @@ interface MenuItem {
   isVegetarian: boolean;
   isDailySpecial: boolean;
   categoryName?: string;
+  categoryId: string;
+  imageUrl?: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  nameAm: string | null;
 }
 
 export default function MenuManager() {
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [search, setSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<MenuItem | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  // Fetch menu items
-  const { data: menuItems = [], isLoading } = useQuery<MenuItem[]>({
+  // Category Form State
+  const [newCategoryName, setNewCategoryName] = useState("");
+
+  // Fetch items, categories, and current user role
+  const { data: menuItems = [], isLoading: itemsLoading } = useQuery<MenuItem[]>({
     queryKey: ["menu-items"],
     queryFn: async () => {
-      // In a real app, this would be an API call
-      // return fetch("/api/menu").then(res => res.json());
-      return [
-        {
-          id: "1",
-          name: "Special Beyaynetu",
-          nameAm: "ልዩ በያይነቱ",
-          price: "350.00",
-          isAvailable: true,
-          isSpicy: false,
-          isVegetarian: true,
-          isDailySpecial: true,
-          categoryName: "Main Dishes"
-        },
-        {
-          id: "2",
-          name: "Doro Wat",
-          nameAm: "ዶሮ ወጥ",
-          price: "550.00",
-          isAvailable: true,
-          isSpicy: true,
-          isVegetarian: false,
-          isDailySpecial: false,
-          categoryName: "Main Dishes"
-        }
-      ];
+      const res = await fetch("/api/menu");
+      if (!res.ok) throw new Error("Failed to fetch menu");
+      return res.json();
     },
   });
 
-  // Toggle availability with optimistic update
+  const { data: categories = [], isLoading: catsLoading } = useQuery<Category[]>({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const res = await fetch("/api/categories");
+      if (!res.ok) throw new Error("Failed to fetch categories");
+      return res.json();
+    },
+  });
+
+  const { data: authInfo, isLoading: authLoading } = useQuery({
+    queryKey: ["auth-me"],
+    queryFn: async () => {
+      const res = await fetch("/api/auth/debug");
+      return res.json();
+    },
+  });
+
+  const userRole = authInfo?.role?.role || "waiter";
+  const isManager = ["owner", "manager", "platform_admin"].includes(userRole);
+
+  // Form State
+  const [formData, setFormData] = useState({
+    name: "",
+    nameAm: "",
+    price: "",
+    categoryId: "",
+    isAvailable: true,
+    isSpicy: false,
+    isVegetarian: false,
+    isDailySpecial: false,
+    imageUrl: "",
+  });
+
+  // Handle Image Upload
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `menu-items/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from("menu-images")
+        .upload(filePath, file);
+      if (error) throw error;
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("menu-images").getPublicUrl(filePath);
+      setFormData((prev) => ({ ...prev, imageUrl: publicUrl }));
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Upload failed. Make sure 'menu-images' bucket exists and is public.");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Mutations
   const toggleMutation = useMutation({
-    mutationFn: async ({ id, isAvailable }: { id: string, isAvailable: boolean }) => {
-      // Simulated API call
-      return new Promise((resolve) => setTimeout(resolve, 500));
+    mutationFn: async ({ id, isAvailable }: { id: string; isAvailable: boolean }) => {
+      const res = await fetch(`/api/menu/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isAvailable }),
+      });
+      return res.json();
     },
-    onMutate: async (variables) => {
-      await queryClient.cancelQueries({ queryKey: ["menu-items"] });
-      const previousItems = queryClient.getQueryData(["menu-items"]);
-      queryClient.setQueryData(["menu-items"], (old: MenuItem[] | undefined) =>
-        old?.map((item) =>
-          item.id === variables.id ? { ...item, isAvailable: variables.isAvailable } : item
-        )
-      );
-      return { previousItems };
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["menu-items"] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/menu/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete");
+      return res.json();
     },
-    onError: (err, variables, context) => {
-      queryClient.setQueryData(["menu-items"], context?.previousItems);
-    },
-    onSettled: () => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["menu-items"] });
+      setIsDeleteModalOpen(false);
     },
   });
 
-  const filteredItems = menuItems.filter(item => 
-    item.name.toLowerCase().includes(search.toLowerCase()) || 
-    (item.nameAm && item.nameAm.includes(search))
+  const upsertMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const url = editingItem ? `/api/menu/${editingItem.id}` : "/api/menu";
+      const method = editingItem ? "PATCH" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Failed to save");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["menu-items"] });
+      closeModal();
+    },
+  });
+
+  const addCategoryMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const res = await fetch("/api/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) throw new Error("Failed to add category");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      setNewCategoryName("");
+    },
+  });
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete category");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+
+  const openModal = (item?: MenuItem) => {
+    if (!isManager) return;
+    if (item) {
+      setEditingItem(item);
+      setFormData({
+        name: item.name,
+        nameAm: item.nameAm || "",
+        price: item.price,
+        categoryId: item.categoryId,
+        isAvailable: item.isAvailable,
+        isSpicy: item.isSpicy,
+        isVegetarian: item.isVegetarian,
+        isDailySpecial: item.isDailySpecial,
+        imageUrl: item.imageUrl || "",
+      });
+    } else {
+      setEditingItem(null);
+      setFormData({
+        name: "",
+        nameAm: "",
+        price: "",
+        categoryId: categories[0]?.id || "",
+        isAvailable: true,
+        isSpicy: false,
+        isVegetarian: false,
+        isDailySpecial: false,
+        imageUrl: "",
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingItem(null);
+  };
+
+  if (itemsLoading || catsLoading || authLoading) return <MenuManagerSkeleton />;
+
+  const filteredItems = menuItems.filter(
+    (item) =>
+      (item.name.toLowerCase().includes(search.toLowerCase()) ||
+        (item.nameAm && item.nameAm.includes(search))) &&
+      (activeCategory === "all" || item.categoryId === activeCategory),
   );
 
+  const groupedItems = categories
+    .map((cat) => ({
+      ...cat,
+      items: filteredItems.filter((item) => item.categoryId === cat.id),
+    }))
+    .filter((group) => group.items.length > 0 || activeCategory === group.id);
+
   return (
-    <div className="space-y-6">
-      {/* Action Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-[#111111] p-4 rounded-xl border border-white/5">
-        <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+    <div className="space-y-12 animate-in fade-in duration-500 pb-20">
+      {/* Search Header */}
+      <div className="bg-white p-4 rounded-[6px] border border-neutral-200 shadow-sm sticky top-[5px] z-20 flex items-center justify-between gap-4">
+        <div className="flex-1 relative group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 group-focus-within:text-neutral-900 transition-colors" />
           <input
             type="text"
-            placeholder="Search menu items..."
+            placeholder="Search items..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white/5 border border-white/5 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-white/20 transition-colors"
+            className="w-full bg-neutral-50 border border-neutral-200 rounded-[6px] py-2.5 pl-12 pr-4 text-sm focus:outline-none focus:border-neutral-900 transition-all"
           />
         </div>
-        <button className="flex items-center gap-2 bg-white text-black px-4 py-2 rounded-lg text-sm font-bold hover:bg-neutral-200 transition-colors">
-          <Plus className="w-4 h-4" />
-          Add Item
-        </button>
+        
+        <div className="flex items-center gap-2 shrink-0">
+          <select
+            value={activeCategory}
+            onChange={(e) => setActiveCategory(e.target.value)}
+            className="bg-white border border-neutral-200 rounded-[6px] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest focus:outline-none focus:border-neutral-900 appearance-none min-w-[140px]"
+          >
+            <option value="all">All Categories</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          
+          {isManager && (
+            <>
+              <button
+                onClick={() => setIsCategoryModalOpen(true)}
+                className="p-2.5 bg-white border border-neutral-200 rounded-[6px] text-neutral-400 hover:text-neutral-900 hover:border-neutral-900 transition-all"
+                title="Edit Categories"
+              >
+                <Settings2 className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => openModal()}
+                className="bg-neutral-900 text-white px-6 py-2.5 rounded-[6px] text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center gap-2 shadow-lg"
+              >
+                <Plus className="w-4 h-4" />
+                Add Dish
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Menu List */}
-      <div className="bg-[#111111] border border-white/5 rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-white/5 bg-white/[0.02]">
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-neutral-500">Item</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-neutral-500">Category</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-neutral-500">Price</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-neutral-500">Attributes</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-neutral-500 text-right">Status</th>
-                <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-neutral-500 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {filteredItems.map((item) => (
-                <tr key={item.id} className="hover:bg-white/[0.01] transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium text-white">{item.name}</span>
-                      <span className="text-xs text-neutral-500">{item.nameAm}</span>
+      {/* Categorized Content */}
+      <div className="space-y-16">
+        {groupedItems.map((group) => (
+          <section key={group.id} className="space-y-6">
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-black text-neutral-900 uppercase tracking-tighter shrink-0">
+                {group.name}
+              </h2>
+              <div className="h-[2px] bg-neutral-100 flex-1" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400 bg-neutral-50 px-3 py-1 rounded-full border border-neutral-100">
+                {group.items.length} Items
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {group.items.map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-white border border-neutral-200 rounded-[6px] p-4 flex items-center justify-between hover:border-neutral-400 transition-all group shadow-sm"
+                >
+                  <div className="flex items-center gap-6 flex-1">
+                    <div className="w-16 h-16 bg-neutral-100 rounded-[6px] overflow-hidden shrink-0 border border-neutral-200">
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-neutral-200">
+                          <ImageIcon className="w-6 h-6" />
+                        </div>
+                      )}
                     </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-xs text-neutral-400 bg-white/5 px-2 py-1 rounded">
-                      {item.categoryName}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm font-mono font-medium text-white">
-                      {formatCurrency(item.price)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2">
-                      {item.isDailySpecial && <Star className="w-4 h-4 text-yellow-500" />}
-                      {item.isSpicy && <Flame className="w-4 h-4 text-orange-500" />}
-                      {item.isVegetarian && <Leaf className="w-4 h-4 text-green-500" />}
+
+                    <div className="flex flex-col min-w-0">
+                      <h3 className="text-base text-neutral-900 tracking-tighter uppercase font-bold truncate leading-none mb-1.5">
+                        {item.name}
+                      </h3>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-black text-neutral-900 tracking-tighter">
+                          {formatCurrency(item.price)}
+                        </span>
+                        {!item.isAvailable && (
+                          <span className="text-[8px] font-black uppercase tracking-widest text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
+                            Hidden
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 text-right">
+                  </div>
+
+                  <div className="flex items-center gap-6 shrink-0">
                     <button
+                      disabled={!isManager}
                       onClick={() => toggleMutation.mutate({ id: item.id, isAvailable: !item.isAvailable })}
-                      disabled={toggleMutation.isPending}
                       className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-tighter border transition-all duration-200",
-                        item.isAvailable 
-                          ? "bg-green-500/10 text-green-500 border-green-500/20" 
-                          : "bg-red-500/10 text-red-500 border-red-500/20"
+                        "flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border",
+                        !isManager && "cursor-default opacity-80",
+                        item.isAvailable ? "bg-green-50 text-green-600 border-green-100 hover:bg-green-100" : "bg-neutral-50 text-neutral-400 border-neutral-100 hover:bg-neutral-100"
                       )}
                     >
                       <Power className="w-3 h-3" />
-                      {item.isAvailable ? "Active" : "Disabled"}
+                      {item.isAvailable ? "Live" : "Hidden"}
                     </button>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="p-2 text-neutral-400 hover:text-white transition-colors">
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button className="p-2 text-neutral-400 hover:text-red-500 transition-colors">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
+
+                    {isManager && (
+                      <div className="flex items-center gap-1 border-l border-neutral-100 pl-4">
+                        <button
+                          onClick={() => openModal(item)}
+                          className="p-2 text-neutral-400 hover:text-neutral-900 transition-all rounded-full hover:bg-neutral-50"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setItemToDelete(item);
+                            setIsDeleteModalOpen(true);
+                          }}
+                          className="p-2 text-neutral-400 hover:text-red-600 transition-all rounded-full hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          </section>
+        ))}
       </div>
+
+      {/* Category Management Modal */}
+      <Modal 
+        isOpen={isCategoryModalOpen} 
+        onClose={() => setIsCategoryModalOpen(false)}
+        title="Categories"
+        description="Manage menu categories"
+      >
+        <div className="space-y-6">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="New category..."
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              className="flex-1 bg-neutral-50 border border-neutral-200 rounded-[6px] px-4 py-3 text-sm focus:outline-none focus:border-black"
+            />
+            <button
+              onClick={() => addCategoryMutation.mutate(newCategoryName)}
+              disabled={!newCategoryName || addCategoryMutation.isPending}
+              className="bg-neutral-900 text-white px-4 py-3 rounded-[6px] font-black text-[10px] uppercase tracking-widest hover:bg-black disabled:opacity-50"
+            >
+              {addCategoryMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            </button>
+          </div>
+
+          <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+            {categories.map((cat) => (
+              <div
+                key={cat.id}
+                className="flex justify-between items-center p-4 bg-neutral-50 rounded-[6px] border border-neutral-100 group hover:border-neutral-300 transition-all"
+              >
+                <span className="font-bold text-neutral-900 uppercase text-[10px] tracking-widest">{cat.name}</span>
+                <button
+                  onClick={() => {
+                    if (confirm("Delete category and its items?")) deleteCategoryMutation.mutate(cat.id);
+                  }}
+                  className="text-neutral-300 hover:text-red-600 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Modal>
+
+      {/* Add/Edit Modal */}
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={closeModal}
+        title={editingItem ? "Edit Dish" : "New Dish"}
+        description="Configure menu item details"
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            upsertMutation.mutate(formData);
+          }}
+          className="space-y-6"
+        >
+          <div className="flex gap-6">
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className={cn(
+                "w-24 h-24 shrink-0 bg-neutral-50 border-2 border-dashed border-neutral-200 rounded-[6px] flex flex-col items-center justify-center cursor-pointer hover:border-neutral-900 transition-all overflow-hidden",
+                formData.imageUrl && "border-solid border-neutral-900",
+              )}
+            >
+              {formData.imageUrl ? (
+                <img src={formData.imageUrl} className="w-full h-full object-cover" alt="Preview" />
+              ) : (
+                <div className="flex flex-col items-center">
+                  <ImageIcon className="w-6 h-6 text-neutral-200" />
+                </div>
+              )}
+            </div>
+            <div className="flex-1 space-y-4">
+                <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-1 block">Name</label>
+                    <input
+                        required
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-black uppercase"
+                    />
+                </div>
+                <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-1 block">Price (ETB)</label>
+                    <input
+                        required
+                        type="number"
+                        value={formData.price}
+                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                        className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-black"
+                    />
+                </div>
+            </div>
+          </div>
+          <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+          
+          <div className="space-y-4">
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-1 block">Category</label>
+                <select
+                  required
+                  value={formData.categoryId}
+                  onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                  className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-black appearance-none uppercase"
+                >
+                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="submit"
+              disabled={upsertMutation.isPending || isUploading}
+              className="flex-1 px-6 py-4 bg-neutral-900 text-white text-[10px] font-black uppercase tracking-widest rounded-[4px] hover:bg-black shadow-lg flex justify-center items-center gap-2"
+            >
+              {upsertMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Changes"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal 
+        isOpen={isDeleteModalOpen} 
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Confirm Deletion"
+        description="This action cannot be undone"
+      >
+        <div className="text-center space-y-6">
+          <p className="text-sm font-bold text-neutral-900 uppercase tracking-tight">
+            Delete "{itemToDelete?.name}"?
+          </p>
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => deleteMutation.mutate(itemToDelete!.id)}
+              disabled={deleteMutation.isPending}
+              className="w-full py-4 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest rounded-[4px] hover:bg-red-700 transition-all flex justify-center items-center gap-2"
+            >
+              {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm Delete"}
+            </button>
+            <button
+              onClick={() => setIsDeleteModalOpen(false)}
+              className="w-full py-4 border border-neutral-200 text-neutral-400 text-[10px] font-black uppercase tracking-widest hover:text-neutral-900 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
