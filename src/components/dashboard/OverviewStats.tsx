@@ -8,21 +8,24 @@ import {
   Users, 
   ShoppingBag, 
   ChefHat,
-  Star,
-  Loader2
+  Star
 } from "lucide-react";
 
 interface Stats {
   todayEarnings: number;
   orderCount: number;
   tablesServed: number;
-  itemsOrderedToday: number;
   bestSellers: {
     id: string;
     name: string;
     totalQuantity: number;
     revenue: number;
   }[];
+  todayTopPerformer: {
+    name: string;
+    revenue: number;
+  } | null;
+  busiestTime: string;
 }
 
 export default function OverviewStats() {
@@ -42,10 +45,10 @@ export default function OverviewStats() {
   }
 
   const statCards = [
-    { label: "Today's Earnings", value: formatCurrency(stats?.todayEarnings || 0), icon: TrendingUp, color: "text-neutral-900", bg: "bg-neutral-50" },
-    { label: "Tables Served", value: stats?.tablesServed || 0, icon: Users, color: "text-neutral-900", bg: "bg-neutral-50" },
-    { label: "Total Items", value: stats?.itemsOrderedToday || 0, icon: ChefHat, color: "text-neutral-900", bg: "bg-neutral-50" },
-    { label: "Total Orders", value: stats?.orderCount || 0, icon: ShoppingBag, color: "text-neutral-900", bg: "bg-neutral-50" },
+    { label: "Today's Sales", value: formatCurrency(stats?.todayEarnings || 0), icon: TrendingUp, color: "text-neutral-900", bg: "bg-neutral-50" },
+    { label: "Guests Served", value: stats?.tablesServed || 0, icon: Users, color: "text-neutral-900", bg: "bg-neutral-50" },
+    { label: "Orders Taken", value: stats?.orderCount || 0, icon: ShoppingBag, color: "text-neutral-900", bg: "bg-neutral-50" },
+    { label: "Peak Time", value: stats?.busiestTime || "N/A", icon: Star, color: "text-neutral-900", bg: "bg-neutral-50" },
   ];
 
   return (
@@ -61,11 +64,10 @@ export default function OverviewStats() {
             </div>
             <div className="mt-6 relative z-10">
               <h3 className="text-neutral-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1">{stat.label}</h3>
-              <p className="text-3xl font-black text-neutral-900 tracking-tighter">
+              <p className="text-3xl font-black text-neutral-900 tracking-tighter truncate">
                 {stat.value}
               </p>
             </div>
-            {/* Subtle Industrial Background Accent */}
             <div className="absolute right-[-10px] bottom-[-10px] opacity-[0.03] scale-150 rotate-12">
                <stat.icon className="w-24 h-24 text-neutral-900" />
             </div>
@@ -73,15 +75,15 @@ export default function OverviewStats() {
         ))}
       </div>
 
-      {/* Best Sellers & Quick List */}
+      {/* Popular Items */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 bg-white border border-neutral-300 rounded-[6px] p-8 shadow-sm">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h3 className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em]">High Performance</h3>
-              <p className="text-xl font-black text-neutral-900 tracking-tighter uppercase">Best Selling Items</p>
+              <h3 className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em]">Overview</h3>
+              <p className="text-xl font-black text-neutral-900 tracking-tighter uppercase">Popular Items</p>
             </div>
-            <Star className="w-5 h-5 text-neutral-900" />
+            <ChefHat className="w-5 h-5 text-neutral-900" />
           </div>
 
           <div className="space-y-2">
@@ -91,7 +93,7 @@ export default function OverviewStats() {
                   <span className="text-[10px] font-black text-neutral-300 group-hover:text-neutral-900 transition-colors">0{idx + 1}</span>
                   <div>
                     <p className="text-xs font-black text-neutral-900 uppercase tracking-tight">{item.name}</p>
-                    <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">{item.totalQuantity} Units Sold</p>
+                    <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">{item.totalQuantity} Sold</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -102,7 +104,8 @@ export default function OverviewStats() {
             ))}
             {(!stats?.bestSellers || stats.bestSellers.length === 0) && (
               <div className="py-20 text-center border-2 border-dashed border-neutral-100 rounded-[6px]">
-                <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">No Sales Data Yet</p>
+                <ChefHat className="w-8 h-8 text-neutral-200 mx-auto mb-3" />
+                <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">No Sales Yet</p>
               </div>
             )}
           </div>
@@ -110,19 +113,25 @@ export default function OverviewStats() {
 
         <div className="bg-neutral-900 rounded-[6px] p-8 shadow-xl text-white flex flex-col justify-between">
           <div>
-            <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-4">Operations Tip</h3>
-            <p className="text-lg font-black tracking-tight leading-tight uppercase italic">
-              "Your top seller '{stats?.bestSellers[0]?.name || "..."}' is driving {Math.round(((stats?.bestSellers[0]?.revenue || 0) / (stats?.todayEarnings || 1)) * 100)}% of today's revenue."
-            </p>
+            <h3 className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-4">Quick Insights</h3>
+            {stats?.todayTopPerformer ? (
+              <p className="text-lg font-black tracking-tight leading-tight uppercase italic">
+                "{stats.todayTopPerformer.name}" is driving {Math.round((Number(stats.todayTopPerformer.revenue) / (stats.todayEarnings || 1)) * 100)}% of today's sales.
+              </p>
+            ) : (
+              <p className="text-lg font-black tracking-tight leading-tight uppercase italic">
+                Start taking orders to see real-time insights.
+              </p>
+            )}
           </div>
           <div className="mt-12 pt-8 border-t border-neutral-800">
              <div className="flex justify-between items-end">
                <div>
-                 <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Peak Period</p>
-                 <p className="text-sm font-black uppercase">12:00 PM - 2:30 PM</p>
+                 <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">Busiest Hour</p>
+                 <p className="text-sm font-black uppercase">{stats?.busiestTime || "N/A"}</p>
                </div>
                <div className="text-right">
-                  <p className="text-[24px] font-black tracking-tighter leading-none">HOT</p>
+                  <p className="text-[24px] font-black tracking-tighter leading-none text-orange-500">PEAK</p>
                </div>
              </div>
           </div>

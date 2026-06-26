@@ -1,27 +1,21 @@
 "use client";
 
 import React from "react";
-import { usePathname, useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { usePathname } from "next/navigation";
+import { Mail } from "lucide-react";
 
 interface DashboardHeaderProps {
   hotelName: string;
   role: string;
+  email?: string;
 }
 
 export default function DashboardHeader({
   hotelName,
   role,
+  email,
 }: DashboardHeaderProps) {
   const pathname = usePathname();
-  const router = useRouter();
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push("/auth/login");
-    router.refresh();
-  };
 
   const getPageTitle = () => {
     const path = pathname.split("/").pop();
@@ -29,13 +23,13 @@ export default function DashboardHeader({
       case "dashboard":
         return "Overview";
       case "orders":
-        return "Live Orders";
+        return "Orders";
       case "menu":
-        return "Menu"; // Renamed from Menu Manager
+        return "Menu";
       case "tables":
-        return "Tables & QR";
+        return "Tables";
       case "analytics":
-        return "Performance";
+        return "Analytics";
       default:
         return "Dashboard";
     }
@@ -54,14 +48,9 @@ export default function DashboardHeader({
         </div>
       </div>
 
-      <div className="flex items-center gap-1">
-        <button
-          onClick={handleSignOut}
-          className="flex items-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-widest text-red-600 hover:text-white hover:bg-red-600 transition-all border border-red-100 hover:border-red-600 rounded-[6px] group"
-        >
-          <LogOut className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
-          Sign Out
-        </button>
+      <div className="flex items-center gap-3 px-4 py-2 bg-neutral-50 border border-neutral-200 rounded-[6px]">
+        <Mail className="w-3.5 h-3.5 text-neutral-400" />
+        <span className="text-xs font-bold text-neutral-600">{email || role}</span>
       </div>
     </header>
   );

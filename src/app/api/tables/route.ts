@@ -6,7 +6,7 @@ import { getUserRole } from "@/lib/auth-utils";
 
 export async function GET() {
   const roleInfo = await getUserRole();
-  if (!roleInfo) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!roleInfo || !roleInfo.hotelId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const hotelTables = await db
     .select({
@@ -23,7 +23,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const roleInfo = await getUserRole();
-  if (!roleInfo) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!roleInfo || !roleInfo.hotelId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { tableNumber } = await req.json();
 

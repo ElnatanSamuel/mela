@@ -26,12 +26,13 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-neutral-50 text-neutral-900 overflow-hidden">
-      <DashboardSidebar role={roleInfo.role} />
+      <DashboardSidebar role={roleInfo.role} email={roleInfo.email} />
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <DashboardHeader
           hotelName={roleInfo.hotelName || "Mela"}
           role={roleInfo.role}
+          email={roleInfo.email}
         />
         <div className="flex-1 overflow-y-auto p-6 lg:p-8">
           {children}

@@ -5,12 +5,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
   QrCode,
-  Trash2,
   ExternalLink,
   Download,
   Loader2,
+  Edit2,
+  Trash2,
 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
+import ActionMenu from "@/components/ui/ActionMenu";
 
 interface Table {
   id: string;
@@ -62,16 +64,16 @@ export default function TableManager({ hotelId }: { hotelId: string }) {
       <div className="flex flex-col md:flex-row gap-6 justify-between items-start md:items-center bg-white p-8 rounded-[6px] border border-neutral-200 shadow-sm">
         <div>
           <p className="text-xl font-black text-neutral-900 tracking-tighter uppercase">
-            Provision Table
+            Add Table
           </p>
           <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-1">
-            Generate unique identity and QR orchestrator.
+            Create tables with QR codes for guests.
           </p>
         </div>
         <div className="flex gap-2 w-full md:w-auto">
           <input
             type="text"
-            placeholder="E.G. TABLE 10"
+            placeholder="e.g. Table 10"
             value={newTableNumber}
             onChange={(e) => setNewTableNumber(e.target.value)}
             className="bg-neutral-50 border border-neutral-200 rounded-[4px] px-5 py-3 text-xs font-black uppercase tracking-widest text-neutral-900 focus:outline-none focus:border-neutral-900 transition-all flex-1 md:w-68"
@@ -100,16 +102,13 @@ export default function TableManager({ hotelId }: { hotelId: string }) {
               <div className="w-14 h-14 bg-neutral-50 rounded-[4px] flex items-center justify-center border border-neutral-100 group-hover:bg-neutral-900 group-hover:border-neutral-900 transition-all duration-300">
                 <QrCode className="w-7 h-7 text-neutral-300 group-hover:text-white transition-colors" />
               </div>
-              <button
-                onClick={() => {
-                  setTableToDelete(table);
-                  setIsDeleteModalOpen(true);
-                }}
-                disabled={deleteTableMutation.isPending}
-                className="p-2 text-neutral-200 hover:text-red-500 hover:bg-red-50 rounded-[4px] transition-all disabled:opacity-50"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
+              <ActionMenu
+                actions={[
+                  { label: "Edit", icon: <Edit2 className="w-3.5 h-3.5" />, onClick: () => {} },
+                  { label: "QR", icon: <Download className="w-3.5 h-3.5" />, onClick: () => window.open(`/api/tables/${table.id}/qr`, "_blank") },
+                  { label: "Delete", icon: <Trash2 className="w-3.5 h-3.5" />, onClick: () => { setTableToDelete(table); setIsDeleteModalOpen(true); }, danger: true },
+                ]}
+              />
             </div>
 
             <div className="mb-8">
@@ -145,7 +144,7 @@ export default function TableManager({ hotelId }: { hotelId: string }) {
         isOpen={isDeleteModalOpen} 
         onClose={() => setIsDeleteModalOpen(false)}
         title="Delete Table"
-        description="Permanently remove QR orchestrator"
+        description="Remove this table permanently"
       >
         <div className="text-center space-y-6">
           <p className="text-sm font-bold text-neutral-900 uppercase tracking-tight">

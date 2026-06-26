@@ -7,15 +7,28 @@ import { supabase } from "@/lib/supabase";
 import {
   Plus,
   Search,
-  Edit2,
-  Trash2,
   Power,
   Loader2,
   Settings2,
   Image as ImageIcon,
+  Save,
+  Clock,
+  Archive,
+  FileText,
+  Edit2,
+  Trash2,
 } from "lucide-react";
 import MenuManagerSkeleton from "./MenuManagerSkeleton";
 import { Modal } from "@/components/ui/Modal";
+import ActionMenu from "@/components/ui/ActionMenu";
+
+interface MenuVersion {
+  id: string;
+  name: string;
+  status: "draft" | "published" | "archived";
+  createdAt: string;
+  publishedAt: string | null;
+}
 
 interface MenuItem {
   id: string;
@@ -48,6 +61,7 @@ export default function MenuManager() {
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [itemToDelete, setItemToDelete] = useState<MenuItem | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
 
   // Category Form State
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -193,6 +207,32 @@ export default function MenuManager() {
     },
   });
 
+  const { data: versions = [] } = useQuery<MenuVersion[]>({
+    queryKey: ["menu-versions"],
+    queryFn: () => fetch("/api/menu/versions").then((r) => r.json()),
+  });
+
+  const saveVersionMutation = useMutation({
+    mutationFn: async ({
+      name,
+      status,
+    }: {
+      name: string;
+      status: "draft" | "published";
+    }) => {
+      const res = await fetch("/api/menu/versions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, status }),
+      });
+      if (!res.ok) throw new Error("Failed to save version");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["menu-versions"] });
+    },
+  });
+
   const openModal = (item?: MenuItem) => {
     if (!isManager) return;
     if (item) {
@@ -291,6 +331,38 @@ export default function MenuManager() {
                 <Plus className="w-4 h-4" />
                 Add Dish
               </button>
+              <div className="w-px h-8 bg-neutral-200" />
+              <button
+                onClick={() => saveVersionMutation.mutate({ name: `Draft ${new Date().toLocaleDateString()}`, status: "draft" })}
+                disabled={saveVersionMutation.isPending}
+                className="px-4 py-2.5 bg-white border border-neutral-200 rounded-[6px] text-[10px] font-black uppercase tracking-widest text-neutral-600 hover:text-neutral-900 hover:border-neutral-400 transition-all flex items-center gap-2"
+              >
+                {saveVersionMutation.isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                Save Draft
+              </button>
+              <button
+                onClick={() => saveVersionMutation.mutate({ name: `v${versions.length + 1}`, status: "published" })}
+                disabled={saveVersionMutation.isPending}
+                className="px-4 py-2.5 bg-emerald-600 text-white rounded-[6px] text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all flex items-center gap-2 shadow-lg"
+              >
+                {saveVersionMutation.isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <FileText className="w-3.5 h-3.5" />
+                )}
+                Publish
+              </button>
+              <button
+                onClick={() => setIsVersionModalOpen(true)}
+                className="p-2.5 bg-white border border-neutral-200 rounded-[6px] text-neutral-400 hover:text-neutral-900 hover:border-neutral-400 transition-all"
+                title="Version History"
+              >
+                <Clock className="w-4 h-4" />
+              </button>
             </>
           )}
         </div>
@@ -359,26 +431,17 @@ export default function MenuManager() {
                       )}
                     >
                       <Power className="w-3 h-3" />
-                      {item.isAvailable ? "Live" : "Hidden"}
+                      {item.isAvailable ? "Visible" : "Hidden"}
                     </button>
 
                     {isManager && (
                       <div className="flex items-center gap-1 border-l border-neutral-100 pl-4">
-                        <button
-                          onClick={() => openModal(item)}
-                          className="p-2 text-neutral-400 hover:text-neutral-900 transition-all rounded-full hover:bg-neutral-50"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setItemToDelete(item);
-                            setIsDeleteModalOpen(true);
-                          }}
-                          className="p-2 text-neutral-400 hover:text-red-600 transition-all rounded-full hover:bg-red-50"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <ActionMenu
+                          actions={[
+                            { label: "Edit", icon: <Edit2 className="w-3.5 h-3.5" />, onClick: () => openModal(item) },
+                            { label: "Delete", icon: <Trash2 className="w-3.5 h-3.5" />, onClick: () => { setItemToDelete(item); setIsDeleteModalOpen(true); }, danger: true },
+                          ]}
+                        />
                       </div>
                     )}
                   </div>
@@ -394,7 +457,7 @@ export default function MenuManager() {
         isOpen={isCategoryModalOpen} 
         onClose={() => setIsCategoryModalOpen(false)}
         title="Categories"
-        description="Manage menu categories"
+        description="Organize categories"
       >
         <div className="space-y-6">
           <div className="flex gap-2">
@@ -440,7 +503,7 @@ export default function MenuManager() {
         isOpen={isModalOpen} 
         onClose={closeModal}
         title={editingItem ? "Edit Dish" : "New Dish"}
-        description="Configure menu item details"
+        description="Edit item details"
       >
         <form
           onSubmit={(e) => {
@@ -513,6 +576,58 @@ export default function MenuManager() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Version History Modal */}
+      <Modal
+        isOpen={isVersionModalOpen}
+        onClose={() => setIsVersionModalOpen(false)}
+        title="Version History"
+        description="View saved menu versions"
+      >
+        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+          {versions.length === 0 ? (
+            <div className="text-center py-8">
+              <Archive className="w-8 h-8 text-neutral-200 mx-auto mb-2" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-neutral-300">
+                No versions saved yet
+              </p>
+            </div>
+          ) : (
+            versions.map((v) => (
+              <div
+                key={v.id}
+                className="flex items-center justify-between p-4 bg-neutral-50 rounded-[6px] border border-neutral-100"
+              >
+                <div>
+                  <p className="text-xs font-black text-neutral-900 uppercase tracking-tight">
+                    {v.name}
+                  </p>
+                  <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">
+                    {new Date(v.createdAt).toLocaleDateString()} at{" "}
+                    {new Date(v.createdAt).toLocaleTimeString()}
+                  </p>
+                </div>
+                <span
+                  className={cn(
+                    "px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border",
+                    v.status === "published" &&
+                      "bg-emerald-50 text-emerald-600 border-emerald-100",
+                    v.status === "draft" &&
+                      "bg-amber-50 text-amber-600 border-amber-100",
+                    v.status === "archived" &&
+                      "bg-neutral-100 text-neutral-400 border-neutral-200",
+                  )}
+                >
+                  {v.status === "published" && <FileText className="w-3 h-3 inline mr-1" />}
+                  {v.status === "draft" && <Save className="w-3 h-3 inline mr-1" />}
+                  {v.status === "archived" && <Archive className="w-3 h-3 inline mr-1" />}
+                  {v.status}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
       </Modal>
 
       {/* Delete Confirmation Modal */}

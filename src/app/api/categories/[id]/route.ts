@@ -9,7 +9,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const roleInfo = await getUserRole();
-  if (!roleInfo || roleInfo.role === "waiter") {
+  if (!roleInfo || roleInfo.role === "waiter" || !roleInfo.hotelId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 

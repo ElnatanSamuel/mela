@@ -9,7 +9,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const roleInfo = await getUserRole();
-  if (!roleInfo) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!roleInfo || !roleInfo.hotelId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const allowedRoles = ['owner', 'manager', 'platform_admin'];
   if (!allowedRoles.includes(roleInfo.role)) {
@@ -49,7 +49,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const roleInfo = await getUserRole();
-  if (!roleInfo) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!roleInfo || !roleInfo.hotelId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const allowedRoles = ['owner', 'manager', 'platform_admin'];
   if (!allowedRoles.includes(roleInfo.role)) {

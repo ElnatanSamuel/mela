@@ -1,5 +1,9 @@
 import React from "react";
 import TableManager from "@/components/dashboard/TableManager";
+import BulkTableImport from "@/components/dashboard/BulkTableImport";
+import FloorPlan from "@/components/dashboard/FloorPlan";
+import InventoryManager from "@/components/dashboard/InventoryManager";
+import ReservationManager from "@/components/dashboard/ReservationManager";
 import { getUserRole } from "@/lib/auth-utils";
 import { redirect } from "next/navigation";
 
@@ -8,16 +12,22 @@ export default async function TablesPage() {
   if (!roleInfo) redirect("/auth/login");
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-12 animate-in fade-in duration-500">
       <div>
         <h2 className="text-2xl font-bold text-neutral-900 tracking-tighter uppercase">
-          Table Management
+          Tables
         </h2>
         <p className="text-sm text-neutral-500 mt-1 font-medium">
-          Register your tables and generate scan-to-order QR codes.
+          Add tables and generate QR codes.
         </p>
       </div>
-      <TableManager hotelId={roleInfo.hotelId} />
+      <TableManager hotelId={roleInfo.hotelId || ""} />
+      <BulkTableImport />
+      <div className="border-t border-neutral-200 pt-12">
+        <FloorPlan />
+      </div>
+      <InventoryManager hotelId={roleInfo.hotelId || ""} />
+      <ReservationManager hotelId={roleInfo.hotelId || ""} />
     </div>
   );
 }

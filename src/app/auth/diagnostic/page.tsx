@@ -30,7 +30,7 @@ export default async function DiagnosticPage() {
           <div className="flex items-center gap-4">
             <div>
               <h1 className="text-xl font-black uppercase tracking-tighter">
-                System Diagnostic
+                Diagnostics
               </h1>
               <p className="text-neutral-500 text-sm italic">
                 Status: {user ? "Connected" : "Disconnected"}
@@ -44,7 +44,7 @@ export default async function DiagnosticPage() {
               <form action={fixMyAdmin}>
                 <button className="bg-neutral-900 text-white px-6 py-4 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-black transition-all flex items-center gap-2 shadow-xl">
                   <Wand2 className="w-4 h-4" />
-                  Fix My Admin Role
+                  Fix Admin Role
                 </button>
               </form>
             )}
@@ -53,7 +53,7 @@ export default async function DiagnosticPage() {
             <form action={signOut}>
               <button className="border border-neutral-200 text-neutral-400 px-6 py-4 rounded-lg text-xs font-black uppercase tracking-widest hover:text-red-500 hover:border-red-200 transition-all flex items-center gap-2">
                 <LogOut className="w-4 h-4" />
-                Nuclear Logout
+                Sign Out
               </button>
             </form>
           </div>
@@ -144,7 +144,7 @@ export default async function DiagnosticPage() {
 
         <div className="bg-[#fefefe] border border-neutral-300 p-6 rounded-2xl">
           <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-2 ">
-            Developer Notes:
+            Notes:
           </h3>
           <p className="text-[10px] text-neutral-400 leading-relaxed italic">
             Use the "Fix My Admin Role" button above to manually link your

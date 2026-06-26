@@ -1,10 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
-import { Lock, Mail, Loader2, ArrowRight } from "lucide-react";
+import { Lock, Mail, Loader2, ArrowRight, ShieldAlert } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginContent() {
+  const searchParams = useSearchParams();
+  const reason = searchParams.get("reason");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,9 +29,17 @@ export default function LoginPage() {
       if (!data.user) throw new Error("No user found");
 
       // 2. Fetch role from our API to decide where to go
-      const res = await fetch("/api/auth/me");
+      let res = await fetch("/api/auth/me");
+      
+      // Auto-fix if no role found
       if (!res.ok) {
-        // Fallback to dashboard if API fails
+        const fixRes = await fetch("/api/auth/fix-admin", { method: "POST" });
+        if (fixRes.ok) {
+          res = await fetch("/api/auth/me");
+        }
+      }
+
+      if (!res.ok) {
         window.location.href = "/dashboard";
         return;
       }
@@ -55,14 +66,22 @@ export default function LoginPage() {
       <div className="w-full max-w-md space-y-12 animate-in fade-in zoom-in duration-500">
         <div className="bg-white border border-neutral-300 rounded-[6px] p-10 shadow-sm relative overflow-hidden">
           <div className="flex flex-col items-center mb-10">
-            <h1 className="text-2xl font-bold text-neutral-900 tracking-tighter uppercase">
-              Mela Dashboard
-            </h1>
-            <p className="text-neutral-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">
-              Secure Access Portal
-            </p>
+              <h1 className="text-2xl font-bold text-neutral-900 tracking-tighter uppercase">
+                Mela
+              </h1>
+              <p className="text-neutral-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2">
+                Sign in to your account
+              </p>
           </div>
+          
           <form onSubmit={handleLogin} className="space-y-8 relative z-10">
+            {reason === "session_expired" && !error && (
+              <div className="bg-neutral-900 text-white text-[10px] font-black uppercase tracking-widest p-4 rounded-[4px] flex items-center gap-3 animate-in slide-in-from-top-2 border border-black shadow-lg">
+                <ShieldAlert className="w-4 h-4 text-orange-400" />
+                Session expired. Sign in again.
+              </div>
+            )}
+
             {error && (
               <div className="bg-red-50 border border-red-100 text-red-600 text-[10px] font-black uppercase tracking-widest p-4 rounded-[4px] flex items-center gap-3 animate-in slide-in-from-top-2">
                 <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
@@ -115,14 +134,35 @@ export default function LoginPage() {
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  Login
+                  Sign In
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
             </button>
           </form>
+
+          <div className="mt-6 text-center">
+            <a
+              href="/auth/onboard"
+              className="text-[10px] font-black uppercase tracking-widest text-neutral-400 hover:text-neutral-900 transition-colors"
+            >
+              Register your hotel
+            </a>
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-neutral-200" />
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { db } from "@/db";
@@ -21,7 +22,7 @@ export async function getSession() {
   return supabase.auth.getUser();
 }
 
-export async function getUserRole() {
+export const getUserRole = cache(async () => {
   const session = await getSession();
   const user = session?.data?.user;
 
@@ -36,6 +37,7 @@ export async function getUserRole() {
         role: hotelUsers.role,
         hotelId: hotelUsers.hotelId,
         hotelName: hotels.name,
+        email: sql<string>`${user.email}`,
       })
       .from(hotelUsers)
       .leftJoin(hotels, eq(hotels.id, hotelUsers.hotelId))
@@ -45,19 +47,17 @@ export async function getUserRole() {
                         WHEN ${hotelUsers.role} = 'manager' THEN 2 
                         ELSE 3 END`);
 
-    console.log(`🔍 [getUserRole] Query results for ${user.email}:`, results);
-
     if (!results || results.length === 0) {
       console.log(`❌ [getUserRole] No role entry found for user ${user.id} (${user.email})`);
       return null;
     }
 
-    return results[0];
+    return { ...results[0], email: user.email || "" };
   } catch (error) {
     console.error("❌ [getUserRole] DB query failed:", error);
     return null;
   }
-}
+});
 
 export async function isHotelAdmin() {
   const roleInfo = await getUserRole();
