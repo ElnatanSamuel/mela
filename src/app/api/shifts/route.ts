@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   if (action === "open") {
     const [shift] = await db.insert(shifts).values({
       hotelId: roleInfo.hotelId,
-      openedBy: roleInfo.role || null,
+      openedBy: roleInfo.userId || null,
       cashAtOpen: cashAtOpen || "0",
     }).returning();
 
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
       .update(shifts)
       .set({
         closedAt: new Date(),
-        closedBy: roleInfo.role || null,
+        closedBy: roleInfo.userId || null,
         totalCash: totals[0]?.totalCash || "0",
         totalDigital: totals[0]?.totalDigital || "0",
         totalOrders: totals[0]?.orderCount || 0,

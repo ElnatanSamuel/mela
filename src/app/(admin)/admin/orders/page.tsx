@@ -72,7 +72,7 @@ export default async function OrderPulsePage() {
         {stats.map((stat) => (
           <div
             key={stat.label}
-            className="bg-card border border-border p-8 rounded-[6px] shadow-sm relative overflow-hidden group"
+            className="bg-card rounded-[6px] p-8 shadow-sm dark:shadow-black/10 relative overflow-hidden group"
           >
             <div className="relative z-10">
               <div className="p-3 bg-neutral-900 rounded-[6px] w-fit mb-6">
@@ -89,7 +89,7 @@ export default async function OrderPulsePage() {
         ))}
       </div>
 
-      <div className="bg-card border border-border rounded-[6px] overflow-hidden shadow-sm">
+      <div className="bg-card rounded-[6px] shadow-sm dark:shadow-black/10 overflow-hidden">
         <div className="p-8 border-b border-border flex items-center justify-between">
           <h3 className="text-xs font-black text-foreground uppercase tracking-widest">
             Orders

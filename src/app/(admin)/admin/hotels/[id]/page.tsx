@@ -44,6 +44,7 @@ export default async function HotelDetailsPage({
     .select({
       id: hotelUsers.id,
       userId: hotelUsers.userId,
+      name: hotelUsers.name,
       role: hotelUsers.role,
       createdAt: hotelUsers.createdAt,
     })
@@ -210,7 +211,7 @@ export default async function HotelDetailsPage({
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           <div className="lg:col-span-8 space-y-6">
-            <div className="bg-card border border-border rounded-[6px] overflow-hidden shadow-sm">
+            <div className="bg-card rounded-[6px] shadow-sm dark:shadow-black/10 overflow-hidden">
               <div className="px-8 py-6 border-b border-border flex justify-between items-center bg-muted/50">
                 <div>
                   <h3 className="text-sm font-black text-foreground uppercase tracking-widest">
@@ -299,7 +300,7 @@ export default async function HotelDetailsPage({
           </div>
 
           <div className="lg:col-span-4 space-y-8">
-            <div className="bg-card border border-border rounded-[6px] p-8 shadow-sm">
+            <div className="bg-card rounded-[6px] p-8 shadow-sm dark:shadow-black/10">
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h3 className="text-xs font-black text-foreground uppercase tracking-widest">
@@ -347,7 +348,7 @@ export default async function HotelDetailsPage({
               </div>
             </div>
 
-            <div className="bg-card border border-border rounded-[6px] p-8 shadow-sm">
+            <div className="bg-card rounded-[6px] p-8 shadow-sm dark:shadow-black/10">
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h3 className="text-sm font-black text-foreground uppercase tracking-widest">
@@ -387,7 +388,7 @@ export default async function HotelDetailsPage({
                       </div>
                       <div>
                         <p className="text-[10px] font-black text-foreground uppercase tracking-tight">
-                          ID: {member.userId.slice(0, 8)}
+                          {member.name || member.userId.slice(0, 8)}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground bg-card px-2 py-0.5 rounded-full border border-border">
@@ -442,7 +443,7 @@ export default async function HotelDetailsPage({
               </div>
             </div>
 
-            <div className="bg-card border border-border rounded-[6px] p-8 shadow-sm">
+            <div className="bg-card rounded-[6px] p-8 shadow-sm dark:shadow-black/10">
               <h3 className="text-xs font-black text-foreground uppercase tracking-widest mb-6">
                 Contact Info
               </h3>

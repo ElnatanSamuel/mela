@@ -48,28 +48,28 @@ export default function BulkTableImport() {
   });
 
   return (
-    <div className="bg-white border border-neutral-200 rounded-[6px] overflow-hidden shadow-sm">
+    <div className="bg-card border border-border rounded-[6px] overflow-hidden shadow-sm">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-6 hover:bg-neutral-50 transition-colors"
+        className="w-full flex items-center justify-between p-6 hover:bg-muted transition-colors"
       >
         <div className="flex items-center gap-3">
-          <Upload className="w-5 h-5 text-neutral-400" />
-          <span className="text-xs font-black uppercase tracking-widest text-neutral-900">
+          <Upload className="w-5 h-5 text-muted-foreground" />
+          <span className="text-xs font-black uppercase tracking-widest text-foreground">
             Bulk Table Import
           </span>
         </div>
         {isOpen ? (
-          <ChevronDown className="w-4 h-4 text-neutral-400" />
+          <ChevronDown className="w-4 h-4 text-muted-foreground" />
         ) : (
-          <ChevronRight className="w-4 h-4 text-neutral-400" />
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
         )}
       </button>
 
       {isOpen && (
         <div className="p-6 pt-0 space-y-6">
           <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
               Table Numbers
             </label>
             <textarea
@@ -77,19 +77,19 @@ export default function BulkTableImport() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="1, 2, 3, 4, 5&#10;or&#10;1&#10;2&#10;3&#10;4&#10;5"
               rows={5}
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-neutral-900 resize-none"
+              className="w-full bg-muted border border-border rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-foreground resize-none"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                 Section
               </label>
               <select
                 value={sectionId}
                 onChange={(e) => setSectionId(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-neutral-900 appearance-none"
+                className="w-full bg-muted border border-border rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-foreground appearance-none"
               >
                 <option value="">No section</option>
                 {sections.map((s) => (
@@ -100,7 +100,7 @@ export default function BulkTableImport() {
               </select>
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                 Capacity (each)
               </label>
               <input
@@ -108,21 +108,21 @@ export default function BulkTableImport() {
                 value={capacity}
                 onChange={(e) => setCapacity(Number(e.target.value))}
                 min={1}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-neutral-900"
+                className="w-full bg-muted border border-border rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-foreground"
               />
             </div>
           </div>
 
           {parsedNumbers.length > 0 && (
             <div className="space-y-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                 Preview ({parsedNumbers.length} tables)
               </p>
               <div className="flex flex-wrap gap-2">
                 {parsedNumbers.map((num, i) => (
                   <span
                     key={i}
-                    className="px-3 py-1.5 bg-neutral-50 border border-neutral-200 rounded-[4px] text-[10px] font-bold uppercase tracking-widest text-neutral-600"
+                    className="px-3 py-1.5 bg-muted border border-border rounded-[4px] text-[10px] font-bold uppercase tracking-widest text-muted-foreground"
                   >
                     {num}
                   </span>
@@ -134,7 +134,7 @@ export default function BulkTableImport() {
           <button
             onClick={() => bulkMutation.mutate()}
             disabled={parsedNumbers.length === 0 || bulkMutation.isPending}
-            className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-neutral-900 text-white rounded-[4px] text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50 shadow-lg"
+            className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-primary text-primary-foreground rounded-[4px] text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all disabled:opacity-50 shadow-lg"
           >
             {bulkMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin" />

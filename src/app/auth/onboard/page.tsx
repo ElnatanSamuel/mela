@@ -171,6 +171,7 @@ export default function OnboardPage() {
           location,
           phone,
           userId,
+          fullName,
           logoUrl: finalLogoUrl,
         }),
       });

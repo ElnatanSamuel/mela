@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatCurrency } from "@/lib/utils";
-import { Clock, Play, Square, Loader2, FileText } from "lucide-react";
+import { useToastStore } from "@/lib/toast-store";
+import { Clock, Play, Square, Loader2 } from "lucide-react";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { motion } from "framer-motion";
 
@@ -17,8 +18,9 @@ interface Shift {
   cashAtOpen: string;
 }
 
-export default function ShiftManager() {
+export default function ShiftManager({ autoOpen = false }: { autoOpen?: boolean }) {
   const queryClient = useQueryClient();
+  const { addToast } = useToastStore();
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [closing, setClosing] = useState(false);
 
@@ -35,12 +37,49 @@ export default function ShiftManager() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "open", cashAtOpen: "0" }),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to open shift" }));
+        throw new Error(err.error || "Failed to open shift");
+      }
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["active-shift"] });
+      addToast("Shift opened", "success");
+    },
+    onError: (err: Error) => {
+      addToast(err.message, "error");
     },
   });
+
+  // Auto-open shift based on schedule
+  useEffect(() => {
+    if (!autoOpen || activeShift) return;
+
+    const checkAndAutoOpen = async () => {
+      try {
+        const now = new Date();
+        const dayOfWeek = now.getDay();
+        const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+        const res = await fetch("/api/staff/schedules");
+        const schedules = await res.json();
+
+        const todaySchedule = schedules.find((s: any) => {
+          if (s.dayOfWeek !== dayOfWeek) return false;
+          const [sh, sm] = s.startTime.split(":").map(Number);
+          const startMinutes = sh * 60 + sm;
+          return currentMinutes >= startMinutes;
+        });
+
+        if (todaySchedule) {
+          openShiftMutation.mutate();
+        }
+      } catch {}
+    };
+
+    checkAndAutoOpen();
+  }, [autoOpen, activeShift]);
 
   const closeShiftMutation = useMutation({
     mutationFn: async () => {
@@ -49,12 +88,21 @@ export default function ShiftManager() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "close" }),
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to close shift" }));
+        throw new Error(err.error || "Failed to close shift");
+      }
       return res.json();
     },
-    onSuccess: (data: Shift) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["active-shift"] });
       setShowCloseConfirm(false);
       setClosing(false);
+      addToast("Shift closed", "success");
+    },
+    onError: (err: Error) => {
+      setClosing(false);
+      addToast(err.message, "error");
     },
   });
 
@@ -68,22 +116,22 @@ export default function ShiftManager() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white border border-neutral-200 rounded-[6px] p-6 shadow-sm"
+      className="bg-card border border-border rounded-[6px] p-6 shadow-sm dark:shadow-black/10"
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <Clock className="w-5 h-5 text-neutral-900" />
-          <h3 className="text-sm font-black text-neutral-900 uppercase tracking-tight">
+          <Clock className="w-5 h-5 text-foreground" />
+          <h3 className="text-sm font-black text-foreground uppercase tracking-tight">
             Shift
           </h3>
         </div>
         {activeShift ? (
-          <span className="bg-green-50 text-green-700 border border-green-200 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5">
+          <span className="bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
             Open {duration}h
           </span>
         ) : (
-          <span className="bg-neutral-50 text-neutral-400 border border-neutral-200 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">
+          <span className="bg-muted text-muted-foreground border border-border px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">
             Closed
           </span>
         )}
@@ -92,34 +140,22 @@ export default function ShiftManager() {
       {activeShift ? (
         <div className="space-y-3">
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-neutral-50 rounded-[4px] p-3 text-center">
-              <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400">
-                Cash
-              </p>
-              <p className="text-sm font-black text-neutral-900">
-                {formatCurrency(activeShift.totalCash)}
-              </p>
+            <div className="bg-muted rounded-[4px] p-3 text-center">
+              <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Cash</p>
+              <p className="text-sm font-black text-foreground">{formatCurrency(activeShift.totalCash)}</p>
             </div>
-            <div className="bg-neutral-50 rounded-[4px] p-3 text-center">
-              <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400">
-                Digital
-              </p>
-              <p className="text-sm font-black text-neutral-900">
-                {formatCurrency(activeShift.totalDigital)}
-              </p>
+            <div className="bg-muted rounded-[4px] p-3 text-center">
+              <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Digital</p>
+              <p className="text-sm font-black text-foreground">{formatCurrency(activeShift.totalDigital)}</p>
             </div>
-            <div className="bg-neutral-50 rounded-[4px] p-3 text-center">
-              <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400">
-                Orders
-              </p>
-              <p className="text-sm font-black text-neutral-900">
-                {activeShift.totalOrders}
-              </p>
+            <div className="bg-muted rounded-[4px] p-3 text-center">
+              <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Orders</p>
+              <p className="text-sm font-black text-foreground">{activeShift.totalOrders}</p>
             </div>
           </div>
           <button
             onClick={() => setShowCloseConfirm(true)}
-            className="w-full py-3 bg-neutral-900 text-white rounded-[4px] text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg"
+            className="w-full py-3 bg-primary text-primary-foreground rounded-[4px] text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all flex items-center justify-center gap-2 shadow-lg"
           >
             <Square className="w-3.5 h-3.5" />
             Close Shift
@@ -129,7 +165,7 @@ export default function ShiftManager() {
         <button
           onClick={() => openShiftMutation.mutate()}
           disabled={openShiftMutation.isPending}
-          className="w-full py-4 bg-neutral-900 text-white rounded-[4px] text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+          className="w-full py-4 bg-primary text-primary-foreground rounded-[4px] text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
         >
           {openShiftMutation.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -150,7 +186,7 @@ export default function ShiftManager() {
           closeShiftMutation.mutate();
         }}
         title="Close Shift"
-        message={`Close the current shift?`}
+        message="Close the current shift?"
         confirmLabel={closing ? "Closing..." : "Close Shift"}
         variant="default"
         isLoading={closing}

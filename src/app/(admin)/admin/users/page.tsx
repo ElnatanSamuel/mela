@@ -13,6 +13,7 @@ export default async function StaffManagementPage() {
     .select({
       id: hotelUsers.id,
       userId: hotelUsers.userId,
+      name: hotelUsers.name,
       role: hotelUsers.role,
       hotelName: hotels.name,
       createdAt: hotelUsers.createdAt,
@@ -44,7 +45,7 @@ export default async function StaffManagementPage() {
         <AddStaffButton hotelsList={hotelsList} />
       </div>
 
-      <div className="overflow-x-auto rounded-[6px] border border-border">
+      <div className="overflow-x-auto rounded-[6px] shadow-sm dark:shadow-black/10">
         {allUsers.length === 0 ? (
           <div className="px-6 py-20 text-center">
             <Users className="w-10 h-10 text-muted mx-auto mb-4" />
@@ -56,7 +57,7 @@ export default async function StaffManagementPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-border bg-muted">
-                <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">User ID</th>
+                <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Name</th>
                 <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Role</th>
                 <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Hotel</th>
                 <th className="text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Added</th>
@@ -71,8 +72,8 @@ export default async function StaffManagementPage() {
                       <div className="w-7 h-7 bg-muted rounded-full flex items-center justify-center">
                         <Users className="w-3.5 h-3.5 text-muted-foreground" />
                       </div>
-                      <p className="text-xs font-mono font-bold text-foreground tracking-tighter">
-                        {u.userId?.slice(0, 8) || 'N/A'}...
+                      <p className="text-xs font-bold text-foreground tracking-tighter">
+                        {u.name || u.userId?.slice(0, 8) || 'N/A'}
                       </p>
                     </div>
                   </td>

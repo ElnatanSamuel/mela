@@ -280,6 +280,7 @@ export async function deleteUser(id: string, userId: string, hotelId?: string) {
 
 export async function createStaff(formData: FormData) {
     const email = formData.get('email') as string;
+    const name = formData.get('name') as string;
     const role = formData.get('role') as any; 
     const hotelId = formData.get('hotelId') as string || null;
 
@@ -301,6 +302,7 @@ export async function createStaff(formData: FormData) {
     const [newStaff] = await db.insert(hotelUsers).values({
         userId: authData.user!.id,
         hotelId: hotelId || null,
+        name: name || email.split("@")[0],
         role
     }).returning();
 

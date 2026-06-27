@@ -24,7 +24,7 @@ export default function AdminLoading() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {[1, 2].map((i) => (
-          <div key={i} className="bg-card border border-border rounded-[6px] p-6 space-y-6">
+          <div key={i} className="bg-card rounded-[6px] p-6 space-y-6">
             <div className="flex justify-between items-center">
               <div className="h-4 w-32 bg-muted-foreground/20 rounded-[4px]" />
               <div className="h-3 w-16 bg-muted rounded-[4px]" />

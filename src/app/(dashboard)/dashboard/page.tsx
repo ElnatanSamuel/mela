@@ -3,10 +3,8 @@ import { redirect } from "next/navigation";
 import { getUserRole } from "@/lib/auth-utils";
 import OverviewStats from "@/components/dashboard/OverviewStats";
 import LiveOrderBoard from "@/components/dashboard/LiveOrderBoard";
-import RevenueAnalytics from "@/components/dashboard/RevenueAnalytics";
 import ServiceRequestPanel from "@/components/dashboard/ServiceRequestPanel";
-import ShiftManager from "@/components/dashboard/ShiftManager";
-import StaffClockPanel from "@/components/dashboard/StaffClockPanel";
+import QuickActions from "@/components/dashboard/QuickActions";
 
 export default async function DashboardPage() {
   const roleInfo = await getUserRole();
@@ -17,68 +15,32 @@ export default async function DashboardPage() {
 
   if (!roleInfo) redirect("/auth/login");
 
-  // Initial mock for SSR, real data comes from client-side TanStack query in children
-  const mockInitialOrders: [] = [];
+  const hotelId = roleInfo.hotelId || "";
 
   return (
-    <div className="space-y-12 animate-in fade-in duration-700">
-      {/* 1. Summary */}
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Quick Actions */}
+      <QuickActions role={roleInfo.role} />
+
+      {/* Stat Cards + Charts */}
       <section>
-        <div className="flex justify-between items-end mb-8">
-          <div>
-            <h2 className="text-2xl font-black text-neutral-900 tracking-tighter uppercase">
-              Summary
-            </h2>
-            <p className="text-sm text-neutral-500 mt-1 font-medium">
-              Today's numbers at a glance.
-            </p>
-          </div>
+        <div className="mb-4">
+          <h2 className="text-lg font-black text-foreground tracking-tighter uppercase">Overview</h2>
+          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Today&apos;s numbers</p>
         </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-3">
-            <OverviewStats />
-          </div>
-          <div className="lg:col-span-1 space-y-8">
-            <ShiftManager />
-            <StaffClockPanel hotelId={roleInfo.hotelId || ""} />
-          </div>
-        </div>
+        <OverviewStats />
       </section>
 
-      {/* 2. Current Orders */}
-      <section className="pt-12 border-t border-neutral-200">
-        <div className="flex justify-between items-end mb-8">
-          <div>
-            <h2 className="text-2xl font-black text-neutral-900 tracking-tighter uppercase">
-              Current Orders
-            </h2>
-            <p className="text-sm text-neutral-500 mt-1 font-medium italic">
-              Live orders and updates.
-            </p>
+      {/* Service Requests + Live Orders Row */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <div className="mb-4">
+            <h2 className="text-lg font-black text-foreground tracking-tighter uppercase">Live Orders</h2>
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Active right now</p>
           </div>
+          <LiveOrderBoard initialOrders={[]} hotelId={hotelId || undefined} />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-3 bg-white border border-neutral-300 rounded-[6px] p-8 shadow-sm">
-            <LiveOrderBoard initialOrders={mockInitialOrders} hotelId={roleInfo.hotelId || undefined} />
-          </div>
-          <div className="lg:col-span-1">
-            <ServiceRequestPanel hotelId={roleInfo.hotelId || ""} />
-          </div>
-        </div>
-      </section>
-
-      {/* 3. Insights */}
-      <section className="pt-12 border-t border-neutral-200">
-        <div className="mb-8">
-          <h2 className="text-2xl font-black text-neutral-900 tracking-tighter uppercase">
-            Insights
-          </h2>
-          <p className="text-sm text-neutral-500 mt-1 font-medium italic">
-            Revenue trends and payments.
-          </p>
-        </div>
-        <RevenueAnalytics />
+        <ServiceRequestPanel hotelId={hotelId} role={roleInfo.role} />
       </section>
     </div>
   );

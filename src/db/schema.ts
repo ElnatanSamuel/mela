@@ -42,6 +42,7 @@ export const hotelUsers = pgTable('hotel_users', {
   id: uuid('id').primaryKey().defaultRandom(),
   hotelId: uuid('hotel_id').references(() => hotels.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull(),
+  name: text('name'),
   role: text('role', { enum: ['owner', 'manager', 'waiter', 'chef', 'platform_admin'] }).default('manager').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
@@ -306,6 +307,7 @@ export const staffAttendance = pgTable('staff_attendance', {
   id: uuid('id').primaryKey().defaultRandom(),
   hotelId: uuid('hotel_id').references(() => hotels.id, { onDelete: 'cascade' }).notNull(),
   userId: uuid('user_id').notNull(),
+  name: text('name'),
   clockIn: timestamp('clock_in').defaultNow().notNull(),
   clockOut: timestamp('clock_out'),
   shiftId: uuid('shift_id').references(() => shifts.id, { onDelete: 'set null' }),
@@ -463,6 +465,72 @@ export const broadcastNotifications = pgTable('broadcast_notifications', {
   createdBy: uuid('created_by'),
 });
 
+// 29. Complaints (Guest feedback / issues)
+export const complaints = pgTable('complaints', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  hotelId: uuid('hotel_id').references(() => hotels.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id'),
+  tableId: uuid('table_id'),
+  orderId: uuid('order_id'),
+  message: text('message').notNull(),
+  status: text('status', { enum: ['new', 'acknowledged', 'resolved'] }).default('new').notNull(),
+  response: text('response'),
+  respondedBy: uuid('responded_by'),
+  respondedAt: timestamp('responded_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  hotelIdx: index('idx_complaints_hotel').on(table.hotelId),
+  statusIdx: index('idx_complaints_status').on(table.status),
+}));
+
+// 30. Staff Schedules (Expected work hours)
+export const staffSchedules = pgTable('staff_schedules', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  hotelId: uuid('hotel_id').references(() => hotels.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').notNull(),
+  dayOfWeek: integer('day_of_week').notNull(), // 0=Sunday, 6=Saturday
+  startTime: text('start_time').notNull(), // "08:00"
+  endTime: text('end_time').notNull(), // "17:00"
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  hotelIdx: index('idx_staff_schedules_hotel').on(table.hotelId),
+  userIdx: index('idx_staff_schedules_user').on(table.userId),
+}));
+
+// 31. User Sessions (Active session tracking)
+export const userSessions = pgTable('user_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull(),
+  hotelId: uuid('hotel_id').references(() => hotels.id, { onDelete: 'cascade' }),
+  token: text('token').notNull().unique(),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  deviceInfo: text('device_info'),
+  lastActiveAt: timestamp('last_active_at').defaultNow().notNull(),
+  expiresAt: timestamp('expires_at').notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  revokedAt: timestamp('revoked_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  userIdx: index('idx_user_sessions_user').on(table.userId),
+  hotelIdx: index('idx_user_sessions_hotel').on(table.hotelId),
+  tokenIdx: index('idx_user_sessions_token').on(table.token),
+  activeIdx: index('idx_user_sessions_active').on(table.isActive),
+}));
+
+// 32. Table Assignments (Waiter ↔ Table mapping)
+export const tableAssignments = pgTable('table_assignments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  hotelId: uuid('hotel_id').references(() => hotels.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').notNull(),
+  tableId: uuid('table_id').references(() => tables.id, { onDelete: 'cascade' }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  hotelIdx: index('idx_table_assignments_hotel').on(table.hotelId),
+  userIdx: index('idx_table_assignments_user').on(table.userId),
+  tableIdx: index('idx_table_assignments_table').on(table.tableId),
+}));
+
 // --- Relations ---
 
 export const hotelRelations = relations(hotels, ({ many }) => ({
@@ -475,17 +543,10 @@ export const hotelRelations = relations(hotels, ({ many }) => ({
   modifiers: many(menuModifiers),
   combos: many(combos),
   sessions: many(guestSessions),
-  serviceRequests: many(serviceRequests),
-  shifts: many(shifts),
-  transactions: many(transactions),
-  promoCodes: many(promoCodes),
-  tips: many(tips),
-  staffAttendance: many(staffAttendance),
-  inventoryItems: many(inventoryItems),
-  reservations: many(reservations),
-  customerProfiles: many(customerProfiles),
-  menuVersions: many(menuVersions),
-  receiptSetting: many(receiptSettings),
+  userSessions: many(userSessions),
+  tableAssignments: many(tableAssignments),
+  complaints: many(complaints),
+  staffSchedules: many(staffSchedules),
 }));
 
 export const hotelUserRelations = relations(hotelUsers, ({ one }) => ({
@@ -621,4 +682,12 @@ export const menuVersionRelations = relations(menuVersions, ({ one }) => ({
 
 export const receiptSettingsRelations = relations(receiptSettings, ({ one }) => ({
   hotel: one(hotels, { fields: [receiptSettings.hotelId], references: [hotels.id] }),
+}));
+
+export const complaintRelations = relations(complaints, ({ one }) => ({
+  hotel: one(hotels, { fields: [complaints.hotelId], references: [hotels.id] }),
+}));
+
+export const staffScheduleRelations = relations(staffSchedules, ({ one }) => ({
+  hotel: one(hotels, { fields: [staffSchedules.hotelId], references: [hotels.id] }),
 }));

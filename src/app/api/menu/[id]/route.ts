@@ -18,19 +18,21 @@ export async function PATCH(
     }, { status: 403 });
   }
 
-  const { isAvailable, price, name, nameAm, imageUrl, categoryId } = await req.json();
+  const body = await req.json();
   const { id } = await params;
+
+  const allowedFields: Record<string, any> = {};
+  for (const key of [
+    "isAvailable", "price", "name", "nameAm", "imageUrl", "categoryId",
+    "description", "descriptionAm", "estimatedPrepTime",
+    "isSpicy", "isVegetarian", "isDailySpecial", "hasModifiers", "status", "tags",
+  ]) {
+    if (body[key] !== undefined) allowedFields[key] = body[key];
+  }
 
   const [updatedItem] = await db
     .update(menuItems)
-    .set({ 
-      ...(isAvailable !== undefined && { isAvailable }),
-      ...(price !== undefined && { price }),
-      ...(name !== undefined && { name }),
-      ...(nameAm !== undefined && { nameAm }),
-      ...(imageUrl !== undefined && { imageUrl }),
-      ...(categoryId !== undefined && { categoryId }),
-    })
+    .set(allowedFields)
     .where(and(
       eq(menuItems.id, id),
       eq(menuItems.hotelId, roleInfo.hotelId)

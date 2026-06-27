@@ -176,45 +176,45 @@ export default function PromoCodeManager() {
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-sm font-black text-neutral-900 uppercase tracking-tight">
+          <h3 className="text-sm font-black text-foreground uppercase tracking-tight">
             Promo Codes
           </h3>
-          <p className="text-[10px] font-medium text-neutral-500 uppercase tracking-widest">
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
             Discount codes for guest orders
           </p>
         </div>
         <button
           onClick={openCreateModal}
-          className="bg-neutral-900 text-white px-5 py-2.5 rounded-[6px] text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center gap-2 shadow-lg"
+          className="bg-primary text-primary-foreground px-5 py-2.5 rounded-[6px] text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all flex items-center gap-2 shadow-lg"
         >
           <Plus className="w-4 h-4" />
           New Code
         </button>
       </div>
 
-      <div className="bg-white border border-neutral-200 rounded-[6px] overflow-hidden">
+      <div className="bg-card border border-border rounded-[6px] overflow-hidden shadow-sm dark:shadow-black/10">
         <table className="w-full">
           <thead>
-            <tr className="border-b border-neutral-100 bg-neutral-50">
-              <th className="text-left px-6 py-4 text-[9px] font-black uppercase tracking-widest text-neutral-500">
+            <tr className="border-b border-border bg-muted">
+              <th className="text-left px-6 py-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground">
                 Code
               </th>
-              <th className="text-left px-6 py-4 text-[9px] font-black uppercase tracking-widest text-neutral-500">
+              <th className="text-left px-6 py-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground">
                 Discount
               </th>
-              <th className="text-left px-6 py-4 text-[9px] font-black uppercase tracking-widest text-neutral-500">
+              <th className="text-left px-6 py-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground">
                 Min Order
               </th>
-              <th className="text-left px-6 py-4 text-[9px] font-black uppercase tracking-widest text-neutral-500">
+              <th className="text-left px-6 py-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground">
                 Usage
               </th>
-              <th className="text-left px-6 py-4 text-[9px] font-black uppercase tracking-widest text-neutral-500">
+              <th className="text-left px-6 py-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground">
                 Valid
               </th>
-              <th className="text-center px-6 py-4 text-[9px] font-black uppercase tracking-widest text-neutral-500">
+              <th className="text-center px-6 py-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground">
                 Active
               </th>
-              <th className="text-right px-6 py-4 text-[9px] font-black uppercase tracking-widest text-neutral-500">
+              <th className="text-right px-6 py-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground">
                 Actions
               </th>
             </tr>
@@ -228,12 +228,12 @@ export default function PromoCodeManager() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="border-b border-neutral-100 last:border-b-0 hover:bg-neutral-50 transition-colors"
+                  className="border-b border-border last:border-b-0 hover:bg-muted transition-colors"
                 >
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-2">
-                      <Tag className="w-4 h-4 text-neutral-400" />
-                      <span className="font-black text-neutral-900 text-sm uppercase tracking-tight">
+                      <Tag className="w-4 h-4 text-muted-foreground" />
+                      <span className="font-black text-foreground text-sm uppercase tracking-tight">
                         {promo.code}
                       </span>
                     </div>
@@ -241,9 +241,9 @@ export default function PromoCodeManager() {
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-1">
                       {promo.discountType === "percentage" ? (
-                        <Percent className="w-3.5 h-3.5 text-neutral-400" />
+                        <Percent className="w-3.5 h-3.5 text-muted-foreground" />
                       ) : null}
-                      <span className="font-bold text-neutral-900 text-sm">
+                      <span className="font-bold text-foreground text-sm">
                         {promo.discountType === "percentage"
                           ? `${promo.discountValue}%`
                           : formatCurrency(promo.discountValue)}
@@ -251,7 +251,7 @@ export default function PromoCodeManager() {
                     </div>
                   </td>
                   <td className="px-6 py-5">
-                    <span className="text-xs font-medium text-neutral-500">
+                    <span className="text-xs font-medium text-muted-foreground">
                       {parseFloat(promo.minOrderAmount) > 0
                         ? formatCurrency(promo.minOrderAmount)
                         : "—"}
@@ -259,13 +259,13 @@ export default function PromoCodeManager() {
                   </td>
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
-                      <span className="text-xs font-bold text-neutral-900 whitespace-nowrap">
+                      <span className="text-xs font-bold text-foreground whitespace-nowrap">
                         {promo.usedCount}/{promo.maxUses || "∞"}
                       </span>
                       {promo.maxUses > 0 && (
-                        <div className="flex-1 max-w-[80px] h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+                        <div className="flex-1 max-w-[80px] h-1.5 bg-muted rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-neutral-900 rounded-full transition-all"
+                            className="h-full bg-primary rounded-full transition-all"
                             style={{ width: `${usagePercent(promo.usedCount, promo.maxUses)}%` }}
                           />
                         </div>
@@ -273,7 +273,7 @@ export default function PromoCodeManager() {
                     </div>
                   </td>
                   <td className="px-6 py-5">
-                    <div className="flex items-center gap-1 text-[10px] text-neutral-500 font-medium">
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-medium">
                       <Calendar className="w-3 h-3" />
                       {promo.validUntil
                         ? `${new Date(promo.validFrom).toLocaleDateString()} - ${new Date(promo.validUntil).toLocaleDateString()}`
@@ -292,7 +292,7 @@ export default function PromoCodeManager() {
                       className={`p-2 rounded-full transition-all ${
                         promo.isActive
                           ? "text-green-600 bg-green-50 hover:bg-green-100"
-                          : "text-neutral-300 bg-neutral-50 hover:bg-neutral-100"
+                          : "text-muted-foreground bg-muted hover:bg-muted"
                       }`}
                     >
                       {promo.isActive ? (
@@ -318,8 +318,8 @@ export default function PromoCodeManager() {
 
         {promoCodeList.length === 0 && (
           <div className="py-16 flex flex-col items-center justify-center text-center">
-            <Tag className="w-10 h-10 text-neutral-200 mb-3" />
-            <p className="text-sm font-bold text-neutral-400 uppercase tracking-widest">
+            <Tag className="w-10 h-10 text-muted-foreground mb-3" />
+            <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
               No promo codes yet
             </p>
           </div>
@@ -334,7 +334,7 @@ export default function PromoCodeManager() {
       >
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 block mb-1">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-1">
               Code
             </label>
             <input
@@ -342,12 +342,12 @@ export default function PromoCodeManager() {
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               placeholder="SUMMER20"
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-black uppercase tracking-wider"
+              className="w-full bg-muted border border-border rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-foreground uppercase tracking-wider"
             />
           </div>
 
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 block mb-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-2">
               Discount Type
             </label>
             <div className="flex gap-2">
@@ -356,8 +356,8 @@ export default function PromoCodeManager() {
                 onClick={() => setDiscountType("percentage")}
                 className={`flex-1 py-3 rounded-[4px] text-[10px] font-black uppercase tracking-widest border transition-all ${
                   discountType === "percentage"
-                    ? "bg-neutral-900 text-white border-neutral-900"
-                    : "bg-white text-neutral-400 border-neutral-200"
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card text-muted-foreground border-border"
                 }`}
               >
                 <Percent className="w-3.5 h-3.5 mx-auto mb-0.5" />
@@ -368,8 +368,8 @@ export default function PromoCodeManager() {
                 onClick={() => setDiscountType("fixed")}
                 className={`flex-1 py-3 rounded-[4px] text-[10px] font-black uppercase tracking-widest border transition-all ${
                   discountType === "fixed"
-                    ? "bg-neutral-900 text-white border-neutral-900"
-                    : "bg-white text-neutral-400 border-neutral-200"
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card text-muted-foreground border-border"
                 }`}
               >
                 Fixed Amount
@@ -378,7 +378,7 @@ export default function PromoCodeManager() {
           </div>
 
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 block mb-1">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-1">
               {discountType === "percentage" ? "Discount (%)" : "Discount Amount (ETB)"}
             </label>
             <input
@@ -388,13 +388,13 @@ export default function PromoCodeManager() {
               step="any"
               value={discountValue}
               onChange={(e) => setDiscountValue(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-black"
+              className="w-full bg-muted border border-border rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-foreground"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 block mb-1">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-1">
                 Min Order Amount
               </label>
               <input
@@ -404,11 +404,11 @@ export default function PromoCodeManager() {
                 value={minOrderAmount}
                 onChange={(e) => setMinOrderAmount(e.target.value)}
                 placeholder="0"
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-black"
+                className="w-full bg-muted border border-border rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-foreground"
               />
             </div>
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 block mb-1">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-1">
                 Max Uses
               </label>
               <input
@@ -417,32 +417,32 @@ export default function PromoCodeManager() {
                 value={maxUses}
                 onChange={(e) => setMaxUses(e.target.value)}
                 placeholder="0 = unlimited"
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-black"
+                className="w-full bg-muted border border-border rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-foreground"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 block mb-1">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-1">
                 Valid From
               </label>
               <input
                 type="datetime-local"
                 value={validFrom}
                 onChange={(e) => setValidFrom(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-black"
+                className="w-full bg-muted border border-border rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-foreground"
               />
             </div>
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 block mb-1">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-1">
                 Valid Until
               </label>
               <input
                 type="datetime-local"
                 value={validUntil}
                 onChange={(e) => setValidUntil(e.target.value)}
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-black"
+                className="w-full bg-muted border border-border rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-foreground"
               />
             </div>
           </div>
@@ -450,7 +450,7 @@ export default function PromoCodeManager() {
           <button
             type="submit"
             disabled={createMutation.isPending || updateMutation.isPending}
-            className="w-full bg-neutral-900 text-white py-4 rounded-[6px] text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50"
+            className="w-full bg-primary text-primary-foreground py-4 rounded-[6px] text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all disabled:opacity-50"
           >
             {createMutation.isPending || updateMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin mx-auto" />

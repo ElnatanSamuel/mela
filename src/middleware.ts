@@ -54,6 +54,11 @@ export async function middleware(request: NextRequest) {
     }
   )
 
+  const isClock = request.nextUrl.pathname.startsWith('/auth/clock')
+
+  // 0. Always allow the clock page (no auth needed)
+  if (isClock) return response
+
   const { data: { user } } = await supabase.auth.getUser()
 
   const isDashboard = request.nextUrl.pathname.startsWith('/dashboard')
@@ -61,7 +66,7 @@ export async function middleware(request: NextRequest) {
   const isAuth = request.nextUrl.pathname.startsWith('/auth')
   const isDiagnostic = request.nextUrl.pathname === '/auth/diagnostic'
 
-  // 0. Always allow the diagnostic page
+  // 1. Always allow the diagnostic page
   if (isDiagnostic) return response
 
   // 1. Skip auto-redirect from auth to dashboard to prevent loops. 

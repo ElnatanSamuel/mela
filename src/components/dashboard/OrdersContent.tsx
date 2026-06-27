@@ -18,22 +18,16 @@ export default function OrdersContent({ hotelId }: { hotelId: string }) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-neutral-400" />
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-end">
-        <div>
-          <h2 className="text-2xl font-bold text-black tracking-tight">
-            Live Orders
-          </h2>
-          <p className="text-sm text-neutral-500">
-            Track and manage active orders.
-          </p>
-        </div>
+    <div className="space-y-4">
+      <div className="mb-2">
+        <h2 className="text-lg font-black text-foreground tracking-tighter uppercase">Live Orders</h2>
+        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Track and manage</p>
       </div>
       <LiveOrderBoard initialOrders={orders} hotelId={hotelId} />
     </div>

@@ -31,11 +31,11 @@ export function ConfirmModal({
     <Modal isOpen={isOpen} onClose={onClose} title={title} description="This cannot be undone">
       <div className="text-center space-y-6">
         {variant === "danger" && (
-          <div className="mx-auto w-14 h-14 bg-red-50 rounded-full flex items-center justify-center border border-red-100">
-            <AlertTriangle className="w-7 h-7 text-red-500" />
+          <div className="mx-auto w-14 h-14 bg-destructive/10 rounded-full flex items-center justify-center border border-destructive/20">
+            <AlertTriangle className="w-7 h-7 text-destructive" />
           </div>
         )}
-        <p className="text-sm font-bold text-neutral-900 uppercase tracking-tight">
+        <p className="text-sm font-bold text-foreground uppercase tracking-tight">
           {message}
         </p>
         <div className="flex flex-col gap-2">
@@ -44,8 +44,8 @@ export function ConfirmModal({
             disabled={isLoading}
             className={`w-full py-4 text-[10px] font-black uppercase tracking-widest rounded-[4px] transition-all flex justify-center items-center gap-2 ${
               variant === "danger"
-                ? "bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-                : "bg-neutral-900 text-white hover:bg-black disabled:opacity-50 shadow-lg"
+                ? "bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+                : "bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 shadow-lg"
             }`}
           >
             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : confirmLabel}
@@ -53,7 +53,7 @@ export function ConfirmModal({
           <button
             onClick={onClose}
             disabled={isLoading}
-            className="w-full py-4 border border-neutral-200 text-neutral-400 text-[10px] font-black uppercase tracking-widest hover:text-neutral-900 transition-colors disabled:opacity-50"
+            className="w-full py-4 border border-border text-muted-foreground text-[10px] font-black uppercase tracking-widest hover:text-foreground transition-colors disabled:opacity-50"
           >
             {cancelLabel}
           </button>

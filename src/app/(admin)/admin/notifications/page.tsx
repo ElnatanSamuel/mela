@@ -38,7 +38,7 @@ export default async function NotificationCenterPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
         <div className="lg:col-span-5 space-y-8">
-          <div className="bg-card border border-border rounded-[6px] p-8 shadow-sm space-y-8 relative overflow-hidden group">
+          <div className="bg-card rounded-[6px] p-8 shadow-sm dark:shadow-black/10 space-y-8 relative overflow-hidden group">
             <div className="flex items-center gap-3 mb-2">
               <Send className="w-4 h-4 text-foreground" />
               <h3 className="text-xs font-black text-foreground uppercase tracking-widest">
@@ -108,7 +108,7 @@ export default async function NotificationCenterPage() {
             </form>
           </div>
 
-          <div className="p-6 bg-muted border border-border rounded-[6px] flex items-start gap-4">
+          <div className="p-6 bg-muted rounded-[6px] flex items-start gap-4">
             <Info className="w-5 h-5 text-muted-foreground mt-0.5" />
             <div>
               <p className="text-[10px] font-black text-foreground uppercase tracking-widest">
@@ -135,10 +135,10 @@ export default async function NotificationCenterPage() {
             {broadcasts.map((b) => (
               <div
                 key={b.id}
-                className={`bg-card border rounded-[6px] p-6 shadow-sm flex items-start justify-between gap-6 transition-all group relative overflow-hidden ${
+                className={`bg-card rounded-[6px] p-6 shadow-sm dark:shadow-black/10 flex items-start justify-between gap-6 transition-all group relative overflow-hidden ${
                   !b.isActive
-                    ? "opacity-60 grayscale border-border"
-                    : "border-border hover:border-foreground/20"
+                    ? "opacity-60 grayscale"
+                    : ""
                 }`}
               >
                 <div

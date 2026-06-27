@@ -41,7 +41,7 @@ export default function ExportClient({ isPlatformAdmin, allHotels, defaultHotelI
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-[6px] p-8 shadow-sm space-y-8">
+      <div className="bg-card rounded-[6px] p-8 shadow-sm dark:shadow-black/10 space-y-8">
         <div className="space-y-6">
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">

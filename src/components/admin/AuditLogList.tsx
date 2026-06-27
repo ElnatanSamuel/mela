@@ -63,7 +63,7 @@ export function AuditLogList({ initialLogs, hotels }: { initialLogs: any[], hote
   return (
     <div className="space-y-6">
       {/* Controls */}
-      <div className="bg-card dark:bg-card border border-border rounded-[6px] p-5 flex flex-col md:flex-row gap-4">
+      <div className="bg-card rounded-[6px] p-5 shadow-sm dark:shadow-black/10 flex flex-col md:flex-row gap-4">
         <div className="relative flex-1 group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-foreground transition-colors" />
           <input 
@@ -79,7 +79,7 @@ export function AuditLogList({ initialLogs, hotels }: { initialLogs: any[], hote
           <select 
             value={filterHotel}
             onChange={(e) => setFilterHotel(e.target.value)}
-            className="bg-card dark:bg-card border border-border rounded-[4px] py-3 px-4 text-xs font-bold text-foreground focus:outline-none focus:border-foreground cursor-pointer"
+            className="bg-card border border-border rounded-[4px] py-3 px-4 text-xs font-bold text-foreground focus:outline-none focus:border-foreground cursor-pointer"
           >
             <option value="all">All</option>
             {hotels.map(h => (
@@ -90,7 +90,7 @@ export function AuditLogList({ initialLogs, hotels }: { initialLogs: any[], hote
       </div>
 
       {/* Logs Table */}
-      <div className="overflow-x-auto rounded-[6px] border border-border">
+      <div className="overflow-x-auto rounded-[6px] shadow-sm dark:shadow-black/10">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>

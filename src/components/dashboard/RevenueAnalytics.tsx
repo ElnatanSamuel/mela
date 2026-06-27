@@ -32,7 +32,7 @@ export default function RevenueAnalytics() {
   });
 
   if (isLoading) {
-    return <div className="h-[400px] bg-neutral-50 animate-pulse rounded-[6px] border border-neutral-300" />;
+    return <div className="h-[400px] bg-muted animate-pulse rounded-[6px] border border-border" />;
   }
 
   return (
@@ -44,58 +44,58 @@ export default function RevenueAnalytics() {
           { label: "Payment Mix", value: stats?.paymentChannels.length || 0, icon: CreditCard, trend: "Live", desc: "Active payment methods" },
           { label: "Activity", value: stats?.weeklyRevenue.length || 0, icon: TrendingUp, trend: "7d", desc: "Days with sales" },
         ].map((stat) => (
-          <div key={stat.label} className="bg-white border border-neutral-300 rounded-[6px] p-6 shadow-sm hover:shadow-md transition-all">
+          <div key={stat.label} className="bg-card border border-border rounded-[6px] p-6 shadow-sm dark:shadow-black/10 hover:shadow-md transition-all">
             <div className="flex justify-between items-start mb-4">
-              <div className="p-2 rounded-[4px] bg-neutral-50 border border-neutral-100">
-                <stat.icon className="w-4 h-4 text-neutral-900" />
+              <div className="p-2 rounded-[4px] bg-muted border border-border">
+                <stat.icon className="w-4 h-4 text-foreground" />
               </div>
-              <span className="text-[9px] font-black uppercase tracking-widest text-neutral-900 border border-neutral-900 bg-white px-2 py-0.5 rounded-[4px]">
+              <span className="text-[9px] font-black uppercase tracking-widest text-foreground border border-border bg-card px-2 py-0.5 rounded-[4px]">
                 {stat.trend}
               </span>
             </div>
-            <h3 className="text-neutral-400 text-[9px] font-black uppercase tracking-[0.2em] mb-1">{stat.label}</h3>
-            <p className="text-2xl font-black text-neutral-900 tracking-tighter">
+            <h3 className="text-muted-foreground text-[9px] font-black uppercase tracking-[0.2em] mb-1">{stat.label}</h3>
+            <p className="text-2xl font-black text-foreground tracking-tighter">
               {stat.label === "Avg. Sale" ? formatCurrency(stats?.avgTransaction || 0) : stat.value}
             </p>
-            <p className="text-[10px] text-neutral-400 font-medium italic mt-2">{stat.desc}</p>
+            <p className="text-[10px] text-muted-foreground font-medium italic mt-2">{stat.desc}</p>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Weekly Sales Chart */}
-        <div className="lg:col-span-2 bg-white border border-neutral-300 rounded-[6px] p-8 shadow-sm relative overflow-hidden">
+        <div className="lg:col-span-2 bg-card border border-border rounded-[6px] p-8 shadow-sm dark:shadow-black/10 relative overflow-hidden">
           <div className="flex justify-between items-center mb-10 relative z-10">
             <div>
-              <h3 className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em]">Sales Flow</h3>
-              <p className="text-xl font-black text-neutral-900 tracking-tighter uppercase">Weekly Sales</p>
+              <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Sales Flow</h3>
+              <p className="text-xl font-black text-foreground tracking-tighter uppercase">Weekly Sales</p>
             </div>
           </div>
           
           <div className="h-[350px] w-full relative z-10">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stats?.weeklyRevenue}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
                 <XAxis 
                   dataKey="day" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#171717', fontSize: 10, fontWeight: 900 }} 
+                  tick={{ fill: 'var(--color-muted-foreground)', fontSize: 10, fontWeight: 900 }} 
                 />
                 <YAxis 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#171717', fontSize: 10, fontWeight: 900 }}
+                  tick={{ fill: 'var(--color-muted-foreground)', fontSize: 10, fontWeight: 900 }}
                   tickFormatter={(value) => `${value}`}
                 />
                 <Tooltip 
-                  cursor={{ fill: '#f8f8f8', radius: 4 }}
-                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e5e5', borderRadius: '6px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                  itemStyle={{ color: '#171717', fontSize: '12px', fontWeight: 'bold' }}
+                  cursor={{ fill: 'var(--color-muted)', radius: 4 }}
+                  contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '6px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                  itemStyle={{ color: 'var(--color-foreground)', fontSize: '12px', fontWeight: 'bold' }}
                 />
                 <Bar dataKey="total" radius={[2, 2, 0, 0]} barSize={40}>
                   {stats?.weeklyRevenue.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={index === stats.weeklyRevenue.length - 1 ? '#171717' : '#d4d4d4'} className="hover:fill-neutral-900 transition-colors" />
+                    <Cell key={`cell-${index}`} fill={index === stats.weeklyRevenue.length - 1 ? 'var(--color-foreground)' : 'var(--color-muted-foreground)'} className="opacity-100 hover:opacity-80 transition-opacity" />
                   ))}
                 </Bar>
               </BarChart>
@@ -104,11 +104,11 @@ export default function RevenueAnalytics() {
         </div>
 
         {/* Payment Channels */}
-        <div className="bg-white border border-neutral-300 rounded-[6px] p-8 shadow-sm flex flex-col justify-between">
+        <div className="bg-card border border-border rounded-[6px] p-8 shadow-sm dark:shadow-black/10 flex flex-col justify-between">
           <div>
             <div className="mb-10">
-              <h3 className="text-[10px] font-black text-neutral-400 uppercase tracking-[0.2em]">Payment Channels</h3>
-              <p className="text-xl font-black text-neutral-900 tracking-tighter uppercase">Sales by Method</p>
+              <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Payment Channels</h3>
+              <p className="text-xl font-black text-foreground tracking-tighter uppercase">Sales by Method</p>
             </div>
             
             <div className="h-[200px] w-full relative mb-8">
@@ -129,7 +129,7 @@ export default function RevenueAnalytics() {
                     ))}
                   </Pie>
                   <Tooltip 
-                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #e5e5e5', borderRadius: '6px' }}
+                    contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '6px' }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -137,25 +137,25 @@ export default function RevenueAnalytics() {
 
             <div className="space-y-3">
               {stats?.paymentChannels.map((source, index) => (
-                <div key={source.name} className="flex items-center justify-between p-3 rounded-[4px] border border-neutral-100 hover:border-neutral-900 transition-all group">
+                <div key={source.name} className="flex items-center justify-between p-3 rounded-[4px] border border-border hover:border-foreground transition-all group">
                   <div className="flex items-center gap-3">
                     <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                    <span className="text-[10px] text-neutral-600 font-black uppercase tracking-tight">{source.name}</span>
+                    <span className="text-[10px] text-muted-foreground font-black uppercase tracking-tight">{source.name}</span>
                   </div>
-                  <span className="text-xs text-neutral-900 font-black">{formatCurrency(source.value)}</span>
+                  <span className="text-xs text-foreground font-black">{formatCurrency(source.value)}</span>
                 </div>
               ))}
               {(!stats?.paymentChannels || stats.paymentChannels.length === 0) && (
                 <div className="text-center py-6">
-                  <CreditCard className="w-8 h-8 text-neutral-200 mx-auto mb-2" />
-                  <p className="text-[10px] font-black text-neutral-300 uppercase">No Payment Data</p>
+                  <CreditCard className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-[10px] font-black text-muted-foreground uppercase">No Payment Data</p>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="mt-8 pt-8 border-t border-neutral-100">
-             <p className="text-[9px] font-black text-neutral-400 uppercase tracking-widest leading-relaxed">
+          <div className="mt-8 pt-8 border-t border-border">
+             <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-relaxed">
                Payment data is derived from confirmed orders this week. Check settlements in the Orders tab.
              </p>
           </div>

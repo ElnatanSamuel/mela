@@ -19,4 +19,12 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **Buttons**: Consistent sizing — `py-3 px-6 text-xs font-bold uppercase tracking-widest`
 - **Cards**: `bg-neutral-900 border border-neutral-800 rounded p-5`
 - **Avoid**: Purple gradients, rounded-full buttons, excessive shadow, emoji as icons
+
+## Clock In/Out
+- **URL**: `/auth/clock`
+- **Purpose**: Standalone clock-in page for all staff (kitchen, waiters, etc.)
+- **How it works**: Staff selects their hotel → types their name or email → clocks in/out
+- **No account needed**: Kitchen and other staff don't need login accounts — they just type their name
+- **Manager visibility**: All clock-ins appear on the Staff page (`/dashboard/staff`) for managers to track attendance, hours, overtime
+- **API**: `POST /api/staff/clock-by-name` (lookup by name/email), `GET /api/staff/clock-by-name` (list staff)
 <!-- END:nextjs-agent-rules -->

@@ -46,7 +46,7 @@ const STATUS_STYLES: Record<string, string> = {
   confirmed: "bg-blue-50 text-blue-700 border-blue-200",
   seated: "bg-green-50 text-green-700 border-green-200",
   cancelled: "bg-red-50 text-red-700 border-red-200",
-  no_show: "bg-neutral-50 text-neutral-500 border-neutral-200",
+  no_show: "bg-muted text-muted-foreground border-border",
 };
 
 export default function ReservationManager({ hotelId }: { hotelId: string }) {
@@ -115,18 +115,18 @@ export default function ReservationManager({ hotelId }: { hotelId: string }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mt-12 pt-12 border-t border-neutral-200"
+      className="mt-12 pt-12 border-t border-border"
     >
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <CalendarDays className="w-5 h-5 text-neutral-900" />
-          <h3 className="text-xl font-black text-neutral-900 uppercase tracking-tight">
+          <CalendarDays className="w-5 h-5 text-foreground" />
+          <h3 className="text-xl font-black text-foreground uppercase tracking-tight">
             Reservations
           </h3>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded-[4px] text-[9px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg"
+          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-[4px] text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-lg"
         >
           <Plus className="w-3.5 h-3.5" />
           Add Reservation
@@ -137,12 +137,12 @@ export default function ReservationManager({ hotelId }: { hotelId: string }) {
         <div className="flex items-center gap-4">
           <button
             onClick={() => changeDate(-1)}
-            className="p-2 hover:bg-neutral-100 rounded transition-colors"
+            className="p-2 hover:bg-muted rounded transition-colors"
           >
-            <ChevronLeft className="w-5 h-5 text-neutral-600" />
+            <ChevronLeft className="w-5 h-5 text-muted-foreground" />
           </button>
           <div className="text-center">
-            <p className="text-lg font-black text-neutral-900 tracking-tight">
+            <p className="text-lg font-black text-foreground tracking-tight">
               {new Date(selectedDate).toLocaleDateString("en-US", {
                 weekday: "short",
                 month: "short",
@@ -153,23 +153,23 @@ export default function ReservationManager({ hotelId }: { hotelId: string }) {
           </div>
           <button
             onClick={() => changeDate(1)}
-            className="p-2 hover:bg-neutral-100 rounded transition-colors"
+            className="p-2 hover:bg-muted rounded transition-colors"
           >
-            <ChevronRight className="w-5 h-5 text-neutral-600" />
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
           </button>
         </div>
         <div className="flex items-center gap-6">
           <div className="text-right">
-            <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400">
+            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
               Reservations
             </p>
-            <p className="text-xl font-black text-neutral-900">{activeCount}</p>
+            <p className="text-xl font-black text-foreground">{activeCount}</p>
           </div>
           <div className="text-right">
-            <p className="text-[9px] font-black uppercase tracking-widest text-neutral-400">
+            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
               Guests
             </p>
-            <p className="text-xl font-black text-neutral-900">{totalGuests}</p>
+            <p className="text-xl font-black text-foreground">{totalGuests}</p>
           </div>
         </div>
       </div>
@@ -177,13 +177,13 @@ export default function ReservationManager({ hotelId }: { hotelId: string }) {
       {isLoading ? (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 bg-neutral-50 animate-pulse rounded-[4px]" />
+            <div key={i} className="h-16 bg-muted animate-pulse rounded-[4px]" />
           ))}
         </div>
       ) : reservations.length === 0 ? (
-        <div className="py-20 text-center border-2 border-dashed border-neutral-100 rounded-[6px]">
-          <CalendarDays className="w-10 h-10 text-neutral-200 mx-auto mb-3" />
-          <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">
+        <div className="py-20 text-center border-2 border-dashed border-border rounded-[6px]">
+          <CalendarDays className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
             No reservations for this date
           </p>
         </div>
@@ -195,18 +195,18 @@ export default function ReservationManager({ hotelId }: { hotelId: string }) {
               layout
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              className="flex items-center justify-between p-4 bg-white border border-neutral-200 rounded-[4px] hover:border-neutral-300 transition-all"
+              className="flex items-center justify-between p-4 bg-card border border-border rounded-[4px] hover:border-muted-foreground transition-all"
             >
               <div className="flex items-center gap-6">
                 <div className="text-center min-w-[60px]">
-                  <p className="text-sm font-black text-neutral-900">
-                    {new Date(res.startTime).toLocaleTimeString([], {
+                  <p className="text-sm font-black text-foreground">
+                    {new Date(res.startTime).toLocaleTimeString("en-GB", {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
                   </p>
-                  <p className="text-[8px] font-bold text-neutral-400 uppercase tracking-widest">
-                    {new Date(res.endTime).toLocaleTimeString([], {
+                  <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
+                    {new Date(res.endTime).toLocaleTimeString("en-GB", {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
@@ -214,15 +214,15 @@ export default function ReservationManager({ hotelId }: { hotelId: string }) {
                 </div>
 
                 <div className="min-w-[140px]">
-                  <p className="text-xs font-black text-neutral-900 uppercase tracking-tight">
+                  <p className="text-xs font-black text-foreground uppercase tracking-tight">
                     {res.customerName}
                   </p>
                   <div className="flex items-center gap-3 mt-0.5">
-                    <span className="flex items-center gap-1 text-[9px] text-neutral-400 font-medium">
+                    <span className="flex items-center gap-1 text-[9px] text-muted-foreground font-medium">
                       <Phone className="w-3 h-3" />
                       {res.customerPhone}
                     </span>
-                    <span className="flex items-center gap-1 text-[9px] text-neutral-400 font-medium">
+                    <span className="flex items-center gap-1 text-[9px] text-muted-foreground font-medium">
                       <Users className="w-3 h-3" />
                       {res.guestCount}
                     </span>
@@ -230,12 +230,12 @@ export default function ReservationManager({ hotelId }: { hotelId: string }) {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1 text-[9px] font-bold text-neutral-400 uppercase tracking-widest">
+                  <span className="flex items-center gap-1 text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
                     <Clock className="w-3 h-3" />
                     Table {res.tableNumber || "—"}
                   </span>
                   {res.notes && (
-                    <span className="text-[8px] text-neutral-300 italic max-w-[120px] truncate">
+                    <span className="text-[8px] text-muted-foreground italic max-w-[120px] truncate">
                       {res.notes}
                     </span>
                   )}
@@ -290,10 +290,10 @@ export default function ReservationManager({ hotelId }: { hotelId: string }) {
                         onClick={() =>
                           statusMutation.mutate({ id: res.id, status: "no_show" })
                         }
-                        className="p-1.5 hover:bg-neutral-100 rounded transition-colors"
+                        className="p-1.5 hover:bg-muted rounded transition-colors"
                         title="No Show"
                       >
-                        <UserX className="w-3.5 h-3.5 text-neutral-400" />
+                        <UserX className="w-3.5 h-3.5 text-muted-foreground" />
                       </button>
                     </>
                   )}
@@ -302,7 +302,7 @@ export default function ReservationManager({ hotelId }: { hotelId: string }) {
                     className="p-1.5 hover:bg-red-50 rounded transition-colors ml-1"
                     title="Delete"
                   >
-                    <X className="w-3 h-3 text-neutral-300 hover:text-red-400 transition-colors" />
+                    <X className="w-3 h-3 text-muted-foreground hover:text-red-400 transition-colors" />
                   </button>
                 </div>
               </div>
@@ -386,22 +386,22 @@ function AddReservationModal({
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-1.5">Name</label>
+            <label className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1.5">Name</label>
             <input
               type="text"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              className="w-full px-3 py-3 bg-neutral-50 border border-neutral-200 rounded-[4px] text-xs font-bold text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors uppercase tracking-tight"
+              className="w-full px-3 py-3 bg-muted border border-border rounded-[4px] text-xs font-bold text-foreground focus:outline-none focus:border-foreground transition-colors uppercase tracking-tight"
               placeholder="Guest name"
             />
           </div>
           <div>
-            <label className="block text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-1.5">Phone</label>
+            <label className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1.5">Phone</label>
             <input
               type="text"
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
-              className="w-full px-3 py-3 bg-neutral-50 border border-neutral-200 rounded-[4px] text-xs font-bold text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors"
+              className="w-full px-3 py-3 bg-muted border border-border rounded-[4px] text-xs font-bold text-foreground focus:outline-none focus:border-foreground transition-colors"
               placeholder="+251..."
             />
           </div>
@@ -409,21 +409,21 @@ function AddReservationModal({
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-1.5">Guests</label>
+            <label className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1.5">Guests</label>
             <input
               type="number"
               value={guestCount}
               onChange={(e) => setGuestCount(e.target.value)}
               min="1"
-              className="w-full px-3 py-3 bg-neutral-50 border border-neutral-200 rounded-[4px] text-xs font-bold text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors"
+              className="w-full px-3 py-3 bg-muted border border-border rounded-[4px] text-xs font-bold text-foreground focus:outline-none focus:border-foreground transition-colors"
             />
           </div>
           <div>
-            <label className="block text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-1.5">Table</label>
+            <label className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1.5">Table</label>
             <select
               value={tableId}
               onChange={(e) => setTableId(e.target.value)}
-              className="w-full px-3 py-3 bg-neutral-50 border border-neutral-200 rounded-[4px] text-xs font-bold text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors uppercase tracking-tight"
+              className="w-full px-3 py-3 bg-muted border border-border rounded-[4px] text-xs font-bold text-foreground focus:outline-none focus:border-foreground transition-colors uppercase tracking-tight"
             >
               <option value="">No table</option>
               {tables.map((t) => (
@@ -437,32 +437,32 @@ function AddReservationModal({
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-1.5">Start Time</label>
+            <label className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1.5">Start Time</label>
             <input
               type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className="w-full px-3 py-3 bg-neutral-50 border border-neutral-200 rounded-[4px] text-xs font-bold text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors"
+              className="w-full px-3 py-3 bg-muted border border-border rounded-[4px] text-xs font-bold text-foreground focus:outline-none focus:border-foreground transition-colors"
             />
           </div>
           <div>
-            <label className="block text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-1.5">End Time</label>
+            <label className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1.5">End Time</label>
             <input
               type="time"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className="w-full px-3 py-3 bg-neutral-50 border border-neutral-200 rounded-[4px] text-xs font-bold text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors"
+              className="w-full px-3 py-3 bg-muted border border-border rounded-[4px] text-xs font-bold text-foreground focus:outline-none focus:border-foreground transition-colors"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-1.5">Notes</label>
+          <label className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1.5">Notes</label>
           <input
             type="text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full px-3 py-3 bg-neutral-50 border border-neutral-200 rounded-[4px] text-xs font-bold text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors uppercase tracking-tight"
+            className="w-full px-3 py-3 bg-muted border border-border rounded-[4px] text-xs font-bold text-foreground focus:outline-none focus:border-foreground transition-colors uppercase tracking-tight"
             placeholder="Optional notes"
           />
         </div>
@@ -470,7 +470,7 @@ function AddReservationModal({
         <button
           onClick={() => addMutation.mutate()}
           disabled={!customerName || !customerPhone || addMutation.isPending}
-          className="w-full py-4 bg-neutral-900 text-white rounded-[4px] text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+          className="w-full py-4 bg-primary text-primary-foreground rounded-[4px] text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
         >
           {addMutation.isPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />

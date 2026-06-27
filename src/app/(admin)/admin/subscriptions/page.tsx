@@ -54,7 +54,7 @@ export default async function SubscriptionsDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {stats.map((stat) => (
-          <div key={stat.label} className="bg-card border border-border p-8 rounded-[6px] shadow-sm relative overflow-hidden group">
+          <div key={stat.label} className="bg-card rounded-[6px] p-8 shadow-sm dark:shadow-black/10 relative overflow-hidden group">
             <div className="relative z-10">
               <div className="p-3 bg-neutral-900 rounded-[6px] w-fit mb-6">
                 <stat.icon className="w-5 h-5 text-white" />

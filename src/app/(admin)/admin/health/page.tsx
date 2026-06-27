@@ -74,7 +74,7 @@ export default async function SystemHealthPage() {
         {services.map((service) => (
           <div
             key={service.name}
-            className="bg-card border border-border p-6 rounded-[6px] shadow-sm group hover:border-foreground/20 transition-all"
+            className="bg-card rounded-[6px] p-6 shadow-sm dark:shadow-black/10 group"
           >
             <div className="flex items-center justify-between mb-6">
               <div className="p-3 bg-neutral-900 rounded-[6px]">
@@ -156,7 +156,7 @@ export default async function SystemHealthPage() {
         </div>
 
         <div className="lg:col-span-8">
-          <div className="bg-card border border-border rounded-[6px] overflow-hidden shadow-sm h-full">
+          <div className="bg-card rounded-[6px] shadow-sm dark:shadow-black/10 overflow-hidden h-full">
             <div className="p-8 border-b border-border">
               <h3 className="text-xs font-black text-foreground uppercase tracking-widest">
                 Database Tables

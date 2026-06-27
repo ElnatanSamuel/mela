@@ -6,6 +6,7 @@ import { formatCurrency, cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { getFastingState } from "@/lib/fasting-calendar";
 import { ItemModifierSheet } from "./ItemModifierSheet";
+import { ItemDetailSheet } from "./ItemDetailSheet";
 import {
   Search,
   Plus,
@@ -38,6 +39,8 @@ interface MenuItem {
   id: string;
   name: string;
   nameAm: string | null;
+  description: string | null;
+  descriptionAm: string | null;
   price: string;
   imageUrl?: string;
   isSpicy: boolean;
@@ -46,6 +49,7 @@ interface MenuItem {
   isAvailable: boolean;
   hasModifiers: boolean;
   categoryId: string;
+  estimatedPrepTime: number | null;
 }
 
 interface Category {
@@ -88,6 +92,7 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
   const [orderStatus, setOrderStatus] = useState<string>("pending");
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [modifierItem, setModifierItem] = useState<MenuItem | null>(null);
+  const [detailItem, setDetailItem] = useState<MenuItem | null>(null);
   const [promoCodeInput, setPromoCodeInput] = useState("");
   const [appliedPromo, setAppliedPromo] = useState<PromoCodeResult | null>(null);
   const [promoError, setPromoError] = useState("");
@@ -95,6 +100,8 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
   const [selectedTip, setSelectedTip] = useState<number>(0);
   const [customTipAmount, setCustomTipAmount] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [showComplaintModal, setShowComplaintModal] = useState(false);
+  const [complaintMessage, setComplaintMessage] = useState("");
 
   const fasting = useMemo(() => getFastingState(), []);
 
@@ -207,7 +214,39 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
       if (!res.ok) throw new Error("Failed to place order");
       return res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: async (data, paymentMethod) => {
+      if (paymentMethod === "digital") {
+        // Initialize Chapa payment
+        try {
+          const txRef = `mela-${data.id}-${Date.now()}`;
+          const chapaRes = await fetch("/api/pay/chapa", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              amount: parseFloat(data.totalAmount),
+              txRef,
+              firstName: "Guest",
+              hotelName,
+            }),
+          });
+          const chapaData = await chapaRes.json();
+          if (chapaData.checkoutUrl) {
+            // Store order info in sessionStorage for after redirect
+            sessionStorage.setItem("mela-pending-order", JSON.stringify({
+              orderId: data.id,
+              txRef,
+              hotelId,
+              tableId,
+            }));
+            window.location.href = chapaData.checkoutUrl;
+            return;
+          }
+        } catch (err) {
+          console.error("Chapa init failed:", err);
+        }
+      }
+
+      // Cash or Chapa failed — show order directly
       setActiveOrderId(data.id);
       setOrderStatus(data.status);
       setCart({});
@@ -217,6 +256,22 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
       setCustomTipAmount("");
       setCustomerPhone("");
       setIsCheckoutOpen(false);
+    },
+  });
+
+  const complaintMutation = useMutation({
+    mutationFn: async (message: string) => {
+      const res = await fetch("/api/complaints", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, tableId, orderId: activeOrderId }),
+      });
+      if (!res.ok) throw new Error("Failed to submit complaint");
+      return res.json();
+    },
+    onSuccess: () => {
+      setShowComplaintModal(false);
+      setComplaintMessage("");
     },
   });
 
@@ -394,6 +449,50 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
         >
           Order Again
         </button>
+
+        <button
+          onClick={() => setShowComplaintModal(true)}
+          className="mt-4 text-[10px] font-black uppercase py-3 px-6 w-full max-w-[240px] tracking-widest text-neutral-400 hover:text-red-500 transition-all rounded-[4px]"
+        >
+          Report Issue
+        </button>
+
+        {showComplaintModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowComplaintModal(false)}>
+            <div className="bg-white rounded-[6px] border border-neutral-200 w-full max-w-md p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-sm font-black uppercase tracking-widest text-neutral-900 mb-4">Report an Issue</h3>
+              <textarea
+                value={complaintMessage}
+                onChange={(e) => setComplaintMessage(e.target.value)}
+                placeholder="Tell us what went wrong..."
+                className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-neutral-900 resize-none h-24"
+                autoFocus
+              />
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={() => {
+                    if (complaintMessage.trim()) {
+                      complaintMutation.mutate(complaintMessage);
+                    }
+                  }}
+                  disabled={!complaintMessage.trim() || complaintMutation.isPending}
+                  className="flex-1 py-3 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest rounded-[4px] hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {complaintMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Submit"}
+                </button>
+                <button
+                  onClick={() => { setShowComplaintModal(false); setComplaintMessage(""); }}
+                  className="flex-1 py-3 border border-neutral-200 text-neutral-400 text-[10px] font-black uppercase tracking-widest hover:text-neutral-900 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+              {complaintMutation.isSuccess && (
+                <p className="text-[10px] text-green-600 font-bold uppercase tracking-widest mt-3 text-center">Submitted. Thank you!</p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -532,14 +631,15 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
                 return (
                   <div
                     key={item.id}
+                    onClick={() => !isUnavailable && setDetailItem(item)}
                     className={cn(
-                      "bg-white border rounded-[6px] p-3 flex gap-4 transition-all shadow-sm",
+                      "bg-white border rounded-xl p-4 flex gap-4 transition-all shadow-sm",
                       isUnavailable
                         ? "border-neutral-100 opacity-50"
-                        : "border-neutral-100 active:bg-neutral-50",
+                        : "border-neutral-100 active:bg-neutral-50 cursor-pointer",
                     )}
                   >
-                    <div className="w-20 h-20 bg-neutral-100 rounded-[4px] overflow-hidden shrink-0 border border-neutral-200/50 relative">
+                    <div className="w-24 h-24 bg-neutral-100 rounded-xl overflow-hidden shrink-0 border border-neutral-200/50 relative">
                       {item.imageUrl ? (
                         <img
                           src={item.imageUrl}
@@ -553,38 +653,58 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
                       )}
                       {isUnavailable && (
                         <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
-                          <span className="text-[8px] font-black uppercase text-red-500 bg-white px-2 py-1 rounded border border-red-200">
-                            Unavailable
+                          <span className="text-[8px] font-black uppercase text-red-500 bg-white px-2 py-1 rounded-lg border border-red-200">
+                            Sold Out
                           </span>
                         </div>
                       )}
                     </div>
 
-                    <div className="flex-1 flex flex-col justify-between py-0.5">
-                      <div className="flex justify-between items-start gap-2">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-bold text-neutral-900 uppercase tracking-tight text-sm leading-tight">
-                            {item.name}
-                          </h3>
-                          {item.isVegetarian && fasting.isFastingDay && (
-                            <span className="text-[7px] font-black uppercase tracking-widest text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-200">
-                              ጾም
-                            </span>
-                          )}
-                          {item.hasModifiers && (
-                            <span className="text-[7px] font-black uppercase tracking-widest text-neutral-400 bg-neutral-50 px-1.5 py-0.5 rounded border border-neutral-200">
-                              Customize
-                            </span>
-                          )}
+                    <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-bold text-neutral-900 uppercase tracking-tight text-sm leading-tight">
+                              {item.name}
+                            </h3>
+                            {item.isVegetarian && fasting.isFastingDay && (
+                              <span className="text-[7px] font-black uppercase tracking-widest text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded-md border border-orange-200">
+                                ጾም
+                              </span>
+                            )}
+                            {item.hasModifiers && (
+                              <span className="text-[7px] font-black uppercase tracking-widest text-neutral-400 bg-neutral-50 px-1.5 py-0.5 rounded-md border border-neutral-200">
+                                Custom
+                              </span>
+                            )}
+                          </div>
+                          <span className="font-black text-neutral-900 tracking-tighter text-sm whitespace-nowrap">
+                            {formatCurrency(item.price)}
+                          </span>
                         </div>
-                        <span className="font-black text-neutral-900 tracking-tighter text-sm whitespace-nowrap">
-                          {formatCurrency(item.price)}
-                        </span>
+                        {/* Description snippet */}
+                        {item.description && (
+                          <p className="text-[11px] text-neutral-400 mt-1 line-clamp-1 leading-relaxed">
+                            {item.description}
+                          </p>
+                        )}
+                        {/* Prep time */}
+                        {item.estimatedPrepTime && (
+                          <div className="flex items-center gap-1 mt-1.5">
+                            <Clock className="w-3 h-3 text-neutral-300" />
+                            <span className="text-[9px] font-bold text-neutral-300 uppercase tracking-widest">
+                              ~{item.estimatedPrepTime} min
+                            </span>
+                          </div>
+                        )}
                       </div>
 
-                      <div className="flex justify-end items-center mt-3">
+                      <div className="flex justify-end items-center mt-2">
                         {cart[item.id] ? (
-                          <div className="flex items-center gap-4 bg-neutral-900 text-white p-1 rounded-full border border-neutral-900 shadow-lg scale-90 origin-right">
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-3 bg-neutral-900 text-white p-1 rounded-full border border-neutral-900 shadow-lg scale-90 origin-right"
+                          >
                             <button
                               onClick={() => updateCart(item.id, -1)}
                               className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center active:bg-white/20"
@@ -595,7 +715,7 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
                               {cart[item.id].qty}
                             </span>
                             <button
-                              onClick={() => handleAddItem(item)}
+                              onClick={(e) => { e.stopPropagation(); handleAddItem(item); }}
                               disabled={isUnavailable}
                               className="w-8 h-8 rounded-full bg-white flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50"
                             >
@@ -604,9 +724,9 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
                           </div>
                         ) : (
                           <button
-                            onClick={() => handleAddItem(item)}
+                            onClick={(e) => { e.stopPropagation(); handleAddItem(item); }}
                             disabled={isUnavailable}
-                            className="bg-neutral-900 text-white px-5 py-2 rounded-[4px] text-[9px] font-black uppercase tracking-widest active:scale-95 transition-transform shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-neutral-900 text-white px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest active:scale-95 transition-transform shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             {isUnavailable ? "Sold Out" : "Add"}
                           </button>
@@ -902,6 +1022,23 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
           basePrice={modifierItem.price}
           onConfirm={handleModifierConfirm}
           onClose={() => setModifierItem(null)}
+        />
+      )}
+
+      {/* Detail Sheet */}
+      {detailItem && (
+        <ItemDetailSheet
+          item={{
+            ...detailItem,
+            imageUrl: detailItem.imageUrl || null,
+            description: detailItem.description || null,
+            descriptionAm: detailItem.descriptionAm || null,
+            estimatedPrepTime: detailItem.estimatedPrepTime ?? null,
+          }}
+          cartQty={cart[detailItem.id]?.qty || 0}
+          onAdd={() => handleAddItem(detailItem)}
+          onRemove={() => updateCart(detailItem.id, -1)}
+          onClose={() => setDetailItem(null)}
         />
       )}
     </div>

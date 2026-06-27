@@ -134,18 +134,18 @@ export default function InventoryManager({ hotelId }: { hotelId: string }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white border border-neutral-200 rounded-[6px] p-6 shadow-sm"
+      className="bg-card border border-border rounded-[6px] p-6 shadow-sm dark:shadow-black/10"
     >
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Package className="w-5 h-5 text-neutral-900" />
-          <h3 className="text-sm font-black text-neutral-900 uppercase tracking-tight">
+          <Package className="w-5 h-5 text-foreground" />
+          <h3 className="text-sm font-black text-foreground uppercase tracking-tight">
             Inventory
           </h3>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 bg-neutral-900 text-white px-4 py-2.5 rounded-[4px] text-[9px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg"
+          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2.5 rounded-[4px] text-[9px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-lg"
         >
           <Plus className="w-3.5 h-3.5" />
           Add Item
@@ -162,32 +162,32 @@ export default function InventoryManager({ hotelId }: { hotelId: string }) {
       )}
 
       <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-300" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <input
           type="text"
           placeholder="Search inventory..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 bg-neutral-50 border border-neutral-200 rounded-[4px] text-xs font-bold text-neutral-900 placeholder:text-neutral-300 focus:outline-none focus:border-neutral-900 transition-colors uppercase tracking-tight"
+          className="w-full pl-10 pr-4 py-3 bg-muted border border-border rounded-[4px] text-xs font-bold text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-foreground transition-colors uppercase tracking-tight"
         />
       </div>
 
       {isLoading ? (
         <div className="space-y-2">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-12 bg-neutral-50 animate-pulse rounded-[4px]" />
+            <div key={i} className="h-12 bg-muted animate-pulse rounded-[4px]" />
           ))}
         </div>
       ) : items.length === 0 ? (
-        <div className="py-16 text-center border-2 border-dashed border-neutral-100 rounded-[6px]">
-          <Package className="w-10 h-10 text-neutral-200 mx-auto mb-3" />
-          <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest mb-4">
+        <div className="py-16 text-center border-2 border-dashed border-border rounded-[6px]">
+          <Package className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4">
             {search ? "No items match your search" : "No inventory items yet"}
           </p>
           {!search && (
             <button
               onClick={() => setShowAddModal(true)}
-              className="bg-neutral-900 text-white px-6 py-3 rounded-[4px] text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg"
+              className="bg-primary text-primary-foreground px-6 py-3 rounded-[4px] text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all shadow-lg"
             >
               <Plus className="w-3.5 h-3.5 inline mr-2" />
               Add Your First Item
@@ -198,31 +198,31 @@ export default function InventoryManager({ hotelId }: { hotelId: string }) {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-neutral-200 bg-neutral-50">
-                <th className="text-left py-3 pr-4 text-[10px] font-black uppercase tracking-widest text-neutral-500">Item</th>
-                <th className="text-left py-3 pr-4 text-[10px] font-black uppercase tracking-widest text-neutral-500">Unit</th>
-                <th className="text-right py-3 pr-4 text-[10px] font-black uppercase tracking-widest text-neutral-500">Stock</th>
-                <th className="text-right py-3 pr-4 text-[10px] font-black uppercase tracking-widest text-neutral-500">Threshold</th>
-                <th className="text-center py-3 pr-4 text-[10px] font-black uppercase tracking-widest text-neutral-500">Status</th>
-                <th className="text-right py-3 text-[10px] font-black uppercase tracking-widest text-neutral-500">Actions</th>
+              <tr className="border-b border-border bg-muted">
+                <th className="text-left py-3 pr-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Item</th>
+                <th className="text-left py-3 pr-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Unit</th>
+                <th className="text-right py-3 pr-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Stock</th>
+                <th className="text-right py-3 pr-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Threshold</th>
+                <th className="text-center py-3 pr-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status</th>
+                <th className="text-right py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Actions</th>
               </tr>
             </thead>
             <tbody>
               {items.map((item) => {
                 const status = getStockStatus(item);
                 return (
-                  <tr key={item.id} className="border-b border-neutral-50 hover:bg-neutral-50 transition-colors">
+                  <tr key={item.id} className="border-b border-border hover:bg-muted transition-colors">
                     <td className="py-3 pr-4">
-                      <p className="text-xs font-black text-neutral-900 uppercase tracking-tight">{item.name}</p>
+                      <p className="text-xs font-black text-foreground uppercase tracking-tight">{item.name}</p>
                     </td>
                     <td className="py-3 pr-4">
-                      <span className="text-[10px] font-bold text-neutral-400 uppercase">{item.unit}</span>
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase">{item.unit}</span>
                     </td>
                     <td className="py-3 pr-4 text-right">
-                      <span className="text-sm font-black text-neutral-900">{parseFloat(item.stockQuantity).toFixed(1)}</span>
+                      <span className="text-sm font-black text-foreground">{parseFloat(item.stockQuantity).toFixed(1)}</span>
                     </td>
                     <td className="py-3 pr-4 text-right">
-                      <span className="text-[10px] font-bold text-neutral-400">{parseFloat(item.lowStockThreshold).toFixed(1)}</span>
+                      <span className="text-[10px] font-bold text-muted-foreground">{parseFloat(item.lowStockThreshold).toFixed(1)}</span>
                     </td>
                     <td className="py-3 pr-4 text-center">
                       <span className={cn("inline-block px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border", statusStyles(status))}>
@@ -231,20 +231,20 @@ export default function InventoryManager({ hotelId }: { hotelId: string }) {
                     </td>
                     <td className="py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <div className="flex items-center border border-neutral-200 rounded-[4px] overflow-hidden">
+                        <div className="flex items-center border border-border rounded-[4px] overflow-hidden">
                           <button
                             onClick={() => stockMutation.mutate({ id: item.id, delta: -1 })}
                             disabled={parseFloat(item.stockQuantity) <= 0}
-                            className="p-2 hover:bg-neutral-100 transition-colors disabled:opacity-30"
+                            className="p-2 hover:bg-muted transition-colors disabled:opacity-30"
                           >
-                            <Minus className="w-3.5 h-3.5 text-neutral-600" />
+                            <Minus className="w-3.5 h-3.5 text-muted-foreground" />
                           </button>
-                          <span className="px-2 text-xs font-black text-neutral-900 min-w-[20px] text-center">{parseFloat(item.stockQuantity).toFixed(1)}</span>
+                          <span className="px-2 text-xs font-black text-foreground min-w-[20px] text-center">{parseFloat(item.stockQuantity).toFixed(1)}</span>
                           <button
                             onClick={() => stockMutation.mutate({ id: item.id, delta: 1 })}
-                            className="p-2 hover:bg-neutral-100 transition-colors"
+                            className="p-2 hover:bg-muted transition-colors"
                           >
-                            <Plus className="w-3.5 h-3.5 text-neutral-600" />
+                            <Plus className="w-3.5 h-3.5 text-muted-foreground" />
                           </button>
                         </div>
                         <ActionMenu
@@ -337,43 +337,43 @@ function AddItemModal({
     <Modal isOpen={isOpen} onClose={onClose} title="Add Inventory Item" description="Create a new stock item">
       <div className="space-y-4">
         <div>
-          <label className="block text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-1.5">Name</label>
+          <label className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1.5">Name</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-3 bg-neutral-50 border border-neutral-200 rounded-[4px] text-xs font-bold text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors uppercase tracking-tight"
+            className="w-full px-3 py-3 bg-muted border border-border rounded-[4px] text-xs font-bold text-foreground focus:outline-none focus:border-foreground transition-colors uppercase tracking-tight"
             placeholder="e.g. Tomatoes"
           />
         </div>
         <div>
-          <label className="block text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-1.5">Unit</label>
+          <label className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1.5">Unit</label>
           <input
             type="text"
             value={unit}
             onChange={(e) => setUnit(e.target.value)}
-            className="w-full px-3 py-3 bg-neutral-50 border border-neutral-200 rounded-[4px] text-xs font-bold text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors uppercase tracking-tight"
+            className="w-full px-3 py-3 bg-muted border border-border rounded-[4px] text-xs font-bold text-foreground focus:outline-none focus:border-foreground transition-colors uppercase tracking-tight"
             placeholder="e.g. kg, pcs, L"
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-1.5">Stock Qty</label>
+            <label className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1.5">Stock Qty</label>
             <input
               type="number"
               value={stockQty}
               onChange={(e) => setStockQty(e.target.value)}
-              className="w-full px-3 py-3 bg-neutral-50 border border-neutral-200 rounded-[4px] text-xs font-bold text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors"
+              className="w-full px-3 py-3 bg-muted border border-border rounded-[4px] text-xs font-bold text-foreground focus:outline-none focus:border-foreground transition-colors"
               step="0.1"
             />
           </div>
           <div>
-            <label className="block text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-1.5">Low Threshold</label>
+            <label className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1.5">Low Threshold</label>
             <input
               type="number"
               value={threshold}
               onChange={(e) => setThreshold(e.target.value)}
-              className="w-full px-3 py-3 bg-neutral-50 border border-neutral-200 rounded-[4px] text-xs font-bold text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors"
+              className="w-full px-3 py-3 bg-muted border border-border rounded-[4px] text-xs font-bold text-foreground focus:outline-none focus:border-foreground transition-colors"
               step="0.1"
             />
           </div>
@@ -381,7 +381,7 @@ function AddItemModal({
         <button
           onClick={() => addMutation.mutate()}
           disabled={!name || !unit || addMutation.isPending}
-          className="w-full py-4 bg-neutral-900 text-white rounded-[4px] text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+          className="w-full py-4 bg-primary text-primary-foreground rounded-[4px] text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
         >
           {addMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add Item"}
         </button>
@@ -433,41 +433,41 @@ function EditItemModal({
     <Modal isOpen={isOpen} onClose={onClose} title="Edit Inventory Item" description="Update item details">
       <div className="space-y-4">
         <div>
-          <label className="block text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-1.5">Name</label>
+          <label className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1.5">Name</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-3 bg-neutral-50 border border-neutral-200 rounded-[4px] text-xs font-bold text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors uppercase tracking-tight"
+            className="w-full px-3 py-3 bg-muted border border-border rounded-[4px] text-xs font-bold text-foreground focus:outline-none focus:border-foreground transition-colors uppercase tracking-tight"
           />
         </div>
         <div>
-          <label className="block text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-1.5">Unit</label>
+          <label className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1.5">Unit</label>
           <input
             type="text"
             value={unit}
             onChange={(e) => setUnit(e.target.value)}
-            className="w-full px-3 py-3 bg-neutral-50 border border-neutral-200 rounded-[4px] text-xs font-bold text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors uppercase tracking-tight"
+            className="w-full px-3 py-3 bg-muted border border-border rounded-[4px] text-xs font-bold text-foreground focus:outline-none focus:border-foreground transition-colors uppercase tracking-tight"
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-1.5">Stock Qty</label>
+            <label className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1.5">Stock Qty</label>
             <input
               type="number"
               value={stockQty}
               onChange={(e) => setStockQty(e.target.value)}
-              className="w-full px-3 py-3 bg-neutral-50 border border-neutral-200 rounded-[4px] text-xs font-bold text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors"
+              className="w-full px-3 py-3 bg-muted border border-border rounded-[4px] text-xs font-bold text-foreground focus:outline-none focus:border-foreground transition-colors"
               step="0.1"
             />
           </div>
           <div>
-            <label className="block text-[9px] font-black uppercase tracking-widest text-neutral-400 mb-1.5">Low Threshold</label>
+            <label className="block text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1.5">Low Threshold</label>
             <input
               type="number"
               value={threshold}
               onChange={(e) => setThreshold(e.target.value)}
-              className="w-full px-3 py-3 bg-neutral-50 border border-neutral-200 rounded-[4px] text-xs font-bold text-neutral-900 focus:outline-none focus:border-neutral-900 transition-colors"
+              className="w-full px-3 py-3 bg-muted border border-border rounded-[4px] text-xs font-bold text-foreground focus:outline-none focus:border-foreground transition-colors"
               step="0.1"
             />
           </div>
@@ -475,7 +475,7 @@ function EditItemModal({
         <button
           onClick={() => editMutation.mutate()}
           disabled={!name || !unit || editMutation.isPending}
-          className="w-full py-4 bg-neutral-900 text-white rounded-[4px] text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
+          className="w-full py-4 bg-primary text-primary-foreground rounded-[4px] text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
         >
           {editMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Changes"}
         </button>

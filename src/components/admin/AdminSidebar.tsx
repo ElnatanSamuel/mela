@@ -82,7 +82,7 @@ export default function AdminSidebar({ email }: AdminSidebarProps) {
                       href={item.href}
                       className={`flex items-center gap-3 px-4 py-2.5 rounded-[4px] text-[10px] font-black uppercase tracking-widest transition-all ${
                         isActive
-                          ? "bg-neutral-900 text-white"
+                          ? "bg-orange-500/10 text-orange-500"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted"
                       }`}
                     >

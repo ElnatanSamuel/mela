@@ -2,12 +2,29 @@
 
 import React from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
 import {
-  Building2, MonitorPlay, TrendingUp, Grid, Activity, Globe,
-  PlusCircle, ShoppingBag, Zap, Clock, ArrowUpRight,
+  Building2,
+  MonitorPlay,
+  TrendingUp,
+  Grid,
+  Activity,
+  Globe,
+  PlusCircle,
+  ShoppingBag,
+  Zap,
+  Clock,
+  ArrowUpRight,
 } from "lucide-react";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
@@ -55,8 +72,12 @@ function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload) return null;
   return (
     <div className="bg-card border border-border rounded-[4px] px-4 py-3 shadow-lg text-xs">
-      <p className="text-muted-foreground text-[9px] font-black uppercase tracking-widest mb-1">{label}</p>
-      <p className="text-foreground font-black text-sm">{formatCurrency(payload[0].value)}</p>
+      <p className="text-muted-foreground text-[9px] font-black uppercase tracking-widest mb-1">
+        {label}
+      </p>
+      <p className="text-foreground font-black text-sm">
+        {formatCurrency(payload[0].value)}
+      </p>
     </div>
   );
 }
@@ -65,14 +86,18 @@ const BarGradient = () => (
   <defs>
     <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stopColor="var(--color-foreground)" stopOpacity={1} />
-      <stop offset="100%" stopColor="var(--color-foreground)" stopOpacity={0.2} />
+      <stop
+        offset="100%"
+        stopColor="var(--color-foreground)"
+        stopOpacity={0.2}
+      />
     </linearGradient>
   </defs>
 );
 
 function formatLogTime(iso: string) {
   const d = new Date(iso);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
 export default function AdminDashboardClient({
@@ -134,10 +159,8 @@ export default function AdminDashboardClient({
         {stats.map((stat) => (
           <div
             key={stat.label}
-            className={`bg-card border p-6 rounded-[6px] shadow-sm transition-all group ${
-              stat.highlight
-                ? "border-foreground ring-1 ring-foreground/5"
-                : "border-border hover:border-foreground"
+            className={`bg-card p-6 rounded-[6px] shadow-sm dark:shadow-black/10 transition-all group ${
+              stat.highlight ? "ring-1 ring-foreground/10" : ""
             }`}
           >
             <div className="flex justify-between items-start mb-4">
@@ -196,7 +219,7 @@ export default function AdminDashboardClient({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-card border border-border rounded-[6px] p-6 shadow-sm">
+        <div className="lg:col-span-2 bg-card rounded-[6px] p-6 shadow-sm dark:shadow-black/10">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-[10px] font-black text-foreground uppercase tracking-widest">
               Revenue (Last 7 Days)
@@ -204,25 +227,47 @@ export default function AdminDashboardClient({
             <TrendingUp className="w-3.5 h-3.5 text-muted-foreground/60" />
           </div>
           <div className="h-64">
-            {chartData.some(d => d.revenue > 0) ? (
+            {chartData.some((d) => d.revenue > 0) ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} barCategoryGap="25%">
                   <BarGradient />
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--color-border)"
+                    vertical={false}
+                  />
                   <XAxis
                     dataKey="day"
-                    tick={{ fontSize: 10, fontWeight: 700, fill: "var(--color-muted-foreground)" }}
+                    tick={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      fill: "var(--color-muted-foreground)",
+                    }}
                     tickLine={false}
                     axisLine={{ stroke: "var(--color-border)" }}
                   />
                   <YAxis
-                    tick={{ fontSize: 10, fontWeight: 700, fill: "var(--color-muted-foreground)" }}
+                    tick={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      fill: "var(--color-muted-foreground)",
+                    }}
                     tickLine={false}
                     axisLine={false}
-                    tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
+                    tickFormatter={(v) =>
+                      v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v
+                    }
                   />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: "var(--color-muted)" }} />
-                  <Bar dataKey="revenue" fill="url(#barGradient)" radius={[4, 4, 0, 0]} maxBarSize={48} />
+                  <Tooltip
+                    content={<CustomTooltip />}
+                    cursor={{ fill: "var(--color-muted)" }}
+                  />
+                  <Bar
+                    dataKey="revenue"
+                    fill="url(#barGradient)"
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={48}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -236,7 +281,7 @@ export default function AdminDashboardClient({
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-[6px] p-6 shadow-sm">
+        <div className="bg-card rounded-[6px] p-6 shadow-sm dark:shadow-black/10">
           <h3 className="text-[10px] font-black text-foreground uppercase tracking-widest mb-6">
             Orders by Status
           </h3>
@@ -265,7 +310,9 @@ export default function AdminDashboardClient({
                             <p className="text-muted-foreground text-[9px] font-black uppercase tracking-widest mb-1">
                               {payload[0].name}
                             </p>
-                            <p className="text-foreground font-black text-sm">{payload[0].value}</p>
+                            <p className="text-foreground font-black text-sm">
+                              {payload[0].value}
+                            </p>
                           </div>
                         ) : null
                       }
@@ -302,7 +349,7 @@ export default function AdminDashboardClient({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-card border border-border rounded-[6px] shadow-sm flex flex-col">
+        <div className="lg:col-span-2 bg-card rounded-[6px] shadow-sm dark:shadow-black/10 flex flex-col">
           <div className="p-6 border-b border-border flex items-center justify-between">
             <h3 className="text-[12px] font-black text-foreground uppercase tracking-widest flex items-center gap-2">
               <Activity className="w-4 h-4 text-muted-foreground" />
@@ -352,7 +399,7 @@ export default function AdminDashboardClient({
         </div>
 
         <div className="space-y-6">
-          <div className="bg-card border border-border rounded-[6px] p-6 shadow-sm">
+          <div className="bg-card rounded-[6px] p-6 shadow-sm dark:shadow-black/10">
             <h3 className="text-[10px] font-black text-foreground uppercase tracking-widest mb-6 flex items-center justify-between">
               Top Hotels
               <TrendingUp className="w-3.5 h-3.5 text-green-500" />

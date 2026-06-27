@@ -34,6 +34,7 @@ export const getUserRole = cache(async () => {
   try {
     const results = await db
       .select({
+        userId: hotelUsers.userId,
         role: hotelUsers.role,
         hotelId: hotelUsers.hotelId,
         hotelName: hotels.name,

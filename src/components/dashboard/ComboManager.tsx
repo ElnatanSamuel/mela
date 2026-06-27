@@ -67,16 +67,16 @@ export default function ComboManager() {
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-sm font-black text-neutral-900 uppercase tracking-tight">
+          <h3 className="text-sm font-black text-foreground uppercase tracking-tight">
             Combo Deals
           </h3>
-          <p className="text-[10px] font-medium text-neutral-500 uppercase tracking-widest">
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-widest">
             Save on meal bundles
           </p>
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="bg-neutral-900 text-white px-5 py-2.5 rounded-[6px] text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center gap-2 shadow-lg"
+          className="bg-primary text-primary-foreground px-5 py-2.5 rounded-[6px] text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all flex items-center gap-2 shadow-lg"
         >
           <Plus className="w-4 h-4" />
           New Combo
@@ -84,23 +84,23 @@ export default function ComboManager() {
       </div>
 
       {combos.length === 0 ? (
-        <div className="py-16 text-center border-2 border-dashed border-neutral-100 rounded-[6px]">
-          <Percent className="w-10 h-10 text-neutral-200 mx-auto mb-3" />
-          <p className="text-[10px] font-black text-neutral-300 uppercase tracking-widest">No combos yet</p>
+        <div className="py-16 text-center border-2 border-dashed border-border rounded-[6px]">
+          <Percent className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">No combos yet</p>
         </div>
       ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {combos.map((combo) => (
           <div
             key={combo.id}
-            className="bg-white border border-neutral-200 rounded-[6px] p-6 shadow-sm hover:shadow-md transition-all"
+            className="bg-card border border-border rounded-[6px] p-6 shadow-sm hover:shadow-md transition-all"
           >
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h4 className="text-base font-black text-neutral-900 uppercase tracking-tight">
+                <h4 className="text-base font-black text-foreground uppercase tracking-tight">
                   {combo.name}
                 </h4>
-                <span className="text-[9px] font-black text-neutral-400 uppercase tracking-widest">
+                <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
                   {combo.items.length} items
                 </span>
               </div>
@@ -117,7 +117,7 @@ export default function ComboManager() {
               {combo.items.map((item, idx) => (
                 <div
                   key={idx}
-                  className="flex justify-between text-[10px] text-neutral-500 font-medium"
+                  className="flex justify-between text-[10px] text-muted-foreground font-medium"
                 >
                   <span>
                     {item.name} x{item.quantity}
@@ -125,11 +125,11 @@ export default function ComboManager() {
                   <span>{formatCurrency(item.price)}</span>
                 </div>
               ))}
-              <div className="pt-2 mt-2 border-t border-neutral-100 flex justify-between">
-                <span className="text-xs font-black text-neutral-900 uppercase">
+              <div className="pt-2 mt-2 border-t border-border flex justify-between">
+                <span className="text-xs font-black text-foreground uppercase">
                   Bundle Price
                 </span>
-                <span className="text-sm font-black text-neutral-900">
+                <span className="text-sm font-black text-foreground">
                   {formatCurrency(combo.totalPrice)}
                 </span>
               </div>
@@ -153,19 +153,19 @@ export default function ComboManager() {
           className="space-y-6"
         >
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 block mb-1">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-1">
               Combo Name
             </label>
             <input
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-black uppercase"
+              className="w-full bg-muted border border-border rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-foreground uppercase"
             />
           </div>
 
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 block mb-1">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-1">
               Bundle Price (ETB)
             </label>
             <input
@@ -173,19 +173,19 @@ export default function ComboManager() {
               type="number"
               value={totalPrice}
               onChange={(e) => setTotalPrice(e.target.value)}
-              className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-black"
+              className="w-full bg-muted border border-border rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-foreground"
             />
           </div>
 
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 block mb-1">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-1">
               Items
             </label>
-            <div className="space-y-1 max-h-48 overflow-y-auto border border-neutral-200 rounded-[6px] p-2">
+            <div className="space-y-1 max-h-48 overflow-y-auto border border-border rounded-[6px] p-2">
               {menuItems.map((item) => (
                 <label
                   key={item.id}
-                  className="flex items-center gap-3 p-2 hover:bg-neutral-50 rounded-[4px] cursor-pointer"
+                  className="flex items-center gap-3 p-2 hover:bg-muted rounded-[4px] cursor-pointer"
                 >
                   <input
                     type="checkbox"
@@ -199,12 +199,12 @@ export default function ComboManager() {
                         );
                       }
                     }}
-                    className="accent-neutral-900"
+                    className="accent-foreground"
                   />
                   <span className="text-xs font-bold">
                     {item.name}
                   </span>
-                  <span className="text-[10px] font-black text-neutral-500 ml-auto">
+                  <span className="text-[10px] font-black text-muted-foreground ml-auto">
                     {formatCurrency(item.price)}
                   </span>
                 </label>
@@ -215,7 +215,7 @@ export default function ComboManager() {
           <button
             type="submit"
             disabled={createComboMutation.isPending || selectedItems.length < 2}
-            className="w-full bg-neutral-900 text-white py-4 rounded-[6px] text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50"
+            className="w-full bg-primary text-primary-foreground py-4 rounded-[6px] text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all disabled:opacity-50"
           >
             {createComboMutation.isPending ? (
               <Loader2 className="w-4 h-4 animate-spin mx-auto" />

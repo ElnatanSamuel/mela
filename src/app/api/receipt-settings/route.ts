@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { receiptSettings } from "@/db/schema";
+import { receiptSettings, hotels } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getUserRole } from "@/lib/auth-utils";
 
@@ -20,16 +20,22 @@ export async function GET(req: Request) {
     .from(receiptSettings)
     .where(eq(receiptSettings.hotelId, hotelId));
 
-  return NextResponse.json(
-    settings || {
+  const [hotel] = await db
+    .select({ name: hotels.name, logoUrl: hotels.logoUrl, location: hotels.location, phone: hotels.phone })
+    .from(hotels)
+    .where(eq(hotels.id, hotelId));
+
+  return NextResponse.json({
+    ...(settings || {
       headerText: "Thank you!",
       footerText: "Visit again!",
       showLogo: true,
       showVat: true,
       showServiceCharge: true,
       showItemStatus: false,
-    },
-  );
+    }),
+    hotel: hotel || null,
+  });
 }
 
 export async function POST(req: Request) {

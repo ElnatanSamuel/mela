@@ -41,7 +41,7 @@ export function SubscriptionTable({ hotels }: { hotels: any[] }) {
   }, [hotels, search, filter]);
 
   return (
-    <div className="overflow-x-auto rounded-[6px] border border-border">
+    <div className="overflow-x-auto rounded-[6px] shadow-sm dark:shadow-black/10">
       <div className="p-6 border-b border-border bg-card space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="relative flex-1 group">
@@ -62,7 +62,7 @@ export function SubscriptionTable({ hotels }: { hotels: any[] }) {
                 className={`py-3 px-6 text-[10px] font-black uppercase tracking-widest rounded-[4px] transition-all ${
                   filter === f 
                     ? "bg-neutral-900 dark:bg-neutral-900 text-white" 
-                    : "bg-card dark:bg-card text-muted-foreground border border-border hover:text-foreground hover:border-muted-foreground"
+                    : "bg-card text-muted-foreground border border-border hover:text-foreground hover:border-muted-foreground"
                 }`}
               >
                 {f.charAt(0).toUpperCase() + f.slice(1)}

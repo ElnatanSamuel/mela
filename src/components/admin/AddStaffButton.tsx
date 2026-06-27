@@ -70,6 +70,22 @@ export function AddStaffButton({
           <div className="space-y-4">
             <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
+                  Full Name
+                </label>
+              <div className="relative">
+                <UserPlus className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-300" />
+                <input
+                  name="name"
+                  required
+                  type="text"
+                  placeholder="John Doe"
+                  className="w-full p-4 pl-12 border border-neutral-200 rounded-[4px] text-xs font-bold focus:outline-none focus:border-neutral-900"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
                   Email
                 </label>
               <div className="relative">

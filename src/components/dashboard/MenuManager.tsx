@@ -102,6 +102,9 @@ export default function MenuManager() {
     nameAm: "",
     price: "",
     categoryId: "",
+    description: "",
+    descriptionAm: "",
+    estimatedPrepTime: "",
     isAvailable: true,
     isSpicy: false,
     isVegetarian: false,
@@ -242,6 +245,9 @@ export default function MenuManager() {
         nameAm: item.nameAm || "",
         price: item.price,
         categoryId: item.categoryId,
+        description: (item as any).description || "",
+        descriptionAm: (item as any).descriptionAm || "",
+        estimatedPrepTime: (item as any).estimatedPrepTime?.toString() || "",
         isAvailable: item.isAvailable,
         isSpicy: item.isSpicy,
         isVegetarian: item.isVegetarian,
@@ -255,6 +261,9 @@ export default function MenuManager() {
         nameAm: "",
         price: "",
         categoryId: categories[0]?.id || "",
+        description: "",
+        descriptionAm: "",
+        estimatedPrepTime: "",
         isAvailable: true,
         isSpicy: false,
         isVegetarian: false,
@@ -289,15 +298,15 @@ export default function MenuManager() {
   return (
     <div className="space-y-12 animate-in fade-in duration-500 pb-20">
       {/* Search Header */}
-      <div className="bg-white p-4 rounded-[6px] border border-neutral-200 shadow-sm sticky top-[5px] z-20 flex items-center justify-between gap-4">
+      <div className="bg-card p-4 rounded-[6px] border border-border shadow-sm dark:shadow-black/10 sticky top-[5px] z-20 flex items-center justify-between gap-4">
         <div className="flex-1 relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 group-focus-within:text-neutral-900 transition-colors" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-foreground transition-colors" />
           <input
             type="text"
             placeholder="Search items..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-neutral-50 border border-neutral-200 rounded-[6px] py-2.5 pl-12 pr-4 text-sm focus:outline-none focus:border-neutral-900 transition-all"
+            className="w-full bg-muted border border-border rounded-[6px] py-2.5 pl-12 pr-4 text-sm focus:outline-none focus:border-foreground transition-all text-foreground"
           />
         </div>
         
@@ -305,7 +314,7 @@ export default function MenuManager() {
           <select
             value={activeCategory}
             onChange={(e) => setActiveCategory(e.target.value)}
-            className="bg-white border border-neutral-200 rounded-[6px] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest focus:outline-none focus:border-neutral-900 appearance-none min-w-[140px]"
+            className="bg-card border border-border rounded-[6px] px-4 py-2.5 text-[10px] font-black uppercase tracking-widest focus:outline-none focus:border-foreground appearance-none min-w-[140px] text-foreground"
           >
             <option value="all">All Categories</option>
             {categories.map((c) => (
@@ -319,23 +328,23 @@ export default function MenuManager() {
             <>
               <button
                 onClick={() => setIsCategoryModalOpen(true)}
-                className="p-2.5 bg-white border border-neutral-200 rounded-[6px] text-neutral-400 hover:text-neutral-900 hover:border-neutral-900 transition-all"
+                className="p-2.5 bg-card border border-border rounded-[6px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-all"
                 title="Edit Categories"
               >
                 <Settings2 className="w-5 h-5" />
               </button>
               <button
                 onClick={() => openModal()}
-                className="bg-neutral-900 text-white px-6 py-2.5 rounded-[6px] text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all flex items-center gap-2 shadow-lg"
+                className="bg-primary text-primary-foreground px-6 py-2.5 rounded-[6px] text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all flex items-center gap-2 shadow-lg"
               >
                 <Plus className="w-4 h-4" />
                 Add Dish
               </button>
-              <div className="w-px h-8 bg-neutral-200" />
+              <div className="w-px h-8 bg-border" />
               <button
                 onClick={() => saveVersionMutation.mutate({ name: `Draft ${new Date().toLocaleDateString()}`, status: "draft" })}
                 disabled={saveVersionMutation.isPending}
-                className="px-4 py-2.5 bg-white border border-neutral-200 rounded-[6px] text-[10px] font-black uppercase tracking-widest text-neutral-600 hover:text-neutral-900 hover:border-neutral-400 transition-all flex items-center gap-2"
+                className="px-4 py-2.5 bg-card border border-border rounded-[6px] text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground hover:border-muted-foreground/30 transition-all flex items-center gap-2"
               >
                 {saveVersionMutation.isPending ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -358,7 +367,7 @@ export default function MenuManager() {
               </button>
               <button
                 onClick={() => setIsVersionModalOpen(true)}
-                className="p-2.5 bg-white border border-neutral-200 rounded-[6px] text-neutral-400 hover:text-neutral-900 hover:border-neutral-400 transition-all"
+                className="p-2.5 bg-card border border-border rounded-[6px] text-muted-foreground hover:text-foreground hover:border-muted-foreground/30 transition-all"
                 title="Version History"
               >
                 <Clock className="w-4 h-4" />
@@ -373,11 +382,11 @@ export default function MenuManager() {
         {groupedItems.map((group) => (
           <section key={group.id} className="space-y-6">
             <div className="flex items-center gap-4">
-              <h2 className="text-xl font-black text-neutral-900 uppercase tracking-tighter shrink-0">
+              <h2 className="text-xl font-black text-foreground uppercase tracking-tighter shrink-0">
                 {group.name}
               </h2>
-              <div className="h-[2px] bg-neutral-100 flex-1" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400 bg-neutral-50 px-3 py-1 rounded-full border border-neutral-100">
+              <div className="h-[2px] bg-border flex-1" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground bg-muted px-3 py-1 rounded-full border border-border">
                 {group.items.length} Items
               </span>
             </div>
@@ -386,10 +395,10 @@ export default function MenuManager() {
               {group.items.map((item) => (
                 <div
                   key={item.id}
-                  className="bg-white border border-neutral-200 rounded-[6px] p-4 flex items-center justify-between hover:border-neutral-400 transition-all group shadow-sm"
+                  className="bg-card border border-border rounded-[6px] p-4 flex items-center justify-between hover:border-muted-foreground/30 transition-all group shadow-sm dark:shadow-black/10"
                 >
                   <div className="flex items-center gap-6 flex-1">
-                    <div className="w-16 h-16 bg-neutral-100 rounded-[6px] overflow-hidden shrink-0 border border-neutral-200">
+                    <div className="w-16 h-16 bg-muted rounded-[6px] overflow-hidden shrink-0 border border-border">
                       {item.imageUrl ? (
                         <img
                           src={item.imageUrl}
@@ -397,18 +406,18 @@ export default function MenuManager() {
                           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-neutral-200">
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground/30">
                           <ImageIcon className="w-6 h-6" />
                         </div>
                       )}
                     </div>
 
                     <div className="flex flex-col min-w-0">
-                      <h3 className="text-base text-neutral-900 tracking-tighter uppercase font-bold truncate leading-none mb-1.5">
+                      <h3 className="text-base text-foreground tracking-tighter uppercase font-bold truncate leading-none mb-1.5">
                         {item.name}
                       </h3>
                       <div className="flex items-center gap-3">
-                        <span className="text-sm font-black text-neutral-900 tracking-tighter">
+                        <span className="text-sm font-black text-foreground tracking-tighter">
                           {formatCurrency(item.price)}
                         </span>
                         {!item.isAvailable && (
@@ -427,7 +436,7 @@ export default function MenuManager() {
                       className={cn(
                         "flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border",
                         !isManager && "cursor-default opacity-80",
-                        item.isAvailable ? "bg-green-50 text-green-600 border-green-100 hover:bg-green-100" : "bg-neutral-50 text-neutral-400 border-neutral-100 hover:bg-neutral-100"
+                        item.isAvailable ? "bg-green-50 text-green-600 border-green-100 hover:bg-green-100" : "bg-muted text-muted-foreground border-border hover:bg-muted"
                       )}
                     >
                       <Power className="w-3 h-3" />
@@ -435,7 +444,7 @@ export default function MenuManager() {
                     </button>
 
                     {isManager && (
-                      <div className="flex items-center gap-1 border-l border-neutral-100 pl-4">
+                      <div className="flex items-center gap-1 border-l border-border pl-4">
                         <ActionMenu
                           actions={[
                             { label: "Edit", icon: <Edit2 className="w-3.5 h-3.5" />, onClick: () => openModal(item) },
@@ -466,12 +475,12 @@ export default function MenuManager() {
               placeholder="New category..."
               value={newCategoryName}
               onChange={(e) => setNewCategoryName(e.target.value)}
-              className="flex-1 bg-neutral-50 border border-neutral-200 rounded-[6px] px-4 py-3 text-sm focus:outline-none focus:border-black"
+              className="flex-1 bg-muted border border-border rounded-[6px] px-4 py-3 text-sm focus:outline-none focus:border-foreground text-foreground"
             />
             <button
               onClick={() => addCategoryMutation.mutate(newCategoryName)}
               disabled={!newCategoryName || addCategoryMutation.isPending}
-              className="bg-neutral-900 text-white px-4 py-3 rounded-[6px] font-black text-[10px] uppercase tracking-widest hover:bg-black disabled:opacity-50"
+              className="bg-primary text-primary-foreground px-4 py-3 rounded-[6px] font-black text-[10px] uppercase tracking-widest hover:bg-primary/90 disabled:opacity-50"
             >
               {addCategoryMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             </button>
@@ -481,14 +490,14 @@ export default function MenuManager() {
             {categories.map((cat) => (
               <div
                 key={cat.id}
-                className="flex justify-between items-center p-4 bg-neutral-50 rounded-[6px] border border-neutral-100 group hover:border-neutral-300 transition-all"
+                className="flex justify-between items-center p-4 bg-muted rounded-[6px] border border-border group hover:border-muted-foreground/30 transition-all"
               >
-                <span className="font-bold text-neutral-900 uppercase text-[10px] tracking-widest">{cat.name}</span>
+                <span className="font-bold text-foreground uppercase text-[10px] tracking-widest">{cat.name}</span>
                 <button
                   onClick={() => {
                     if (confirm("Delete category and its items?")) deleteCategoryMutation.mutate(cat.id);
                   }}
-                  className="text-neutral-300 hover:text-red-600 transition-colors"
+                  className="text-muted-foreground hover:text-destructive transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -516,36 +525,36 @@ export default function MenuManager() {
             <div
               onClick={() => fileInputRef.current?.click()}
               className={cn(
-                "w-24 h-24 shrink-0 bg-neutral-50 border-2 border-dashed border-neutral-200 rounded-[6px] flex flex-col items-center justify-center cursor-pointer hover:border-neutral-900 transition-all overflow-hidden",
-                formData.imageUrl && "border-solid border-neutral-900",
+                "w-24 h-24 shrink-0 bg-muted border-2 border-dashed border-border rounded-[6px] flex flex-col items-center justify-center cursor-pointer hover:border-foreground transition-all overflow-hidden",
+                formData.imageUrl && "border-solid border-foreground",
               )}
             >
               {formData.imageUrl ? (
                 <img src={formData.imageUrl} className="w-full h-full object-cover" alt="Preview" />
               ) : (
                 <div className="flex flex-col items-center">
-                  <ImageIcon className="w-6 h-6 text-neutral-200" />
+                  <ImageIcon className="w-6 h-6 text-muted-foreground/30" />
                 </div>
               )}
             </div>
             <div className="flex-1 space-y-4">
                 <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-1 block">Name</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">Name</label>
                     <input
                         required
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-black uppercase"
+                        className="w-full bg-muted border border-border rounded-[4px] px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-foreground uppercase text-foreground"
                     />
                 </div>
                 <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-1 block">Price (ETB)</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">Price (ETB)</label>
                     <input
                         required
                         type="number"
                         value={formData.price}
                         onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-black"
+                        className="w-full bg-muted border border-border rounded-[4px] px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-foreground text-foreground"
                     />
                 </div>
             </div>
@@ -554,15 +563,46 @@ export default function MenuManager() {
           
           <div className="space-y-4">
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-1 block">Category</label>
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">Category</label>
                 <select
                   required
                   value={formData.categoryId}
                   onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                  className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-black appearance-none uppercase"
+                  className="w-full bg-muted border border-border rounded-[4px] px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-foreground appearance-none uppercase text-foreground"
                 >
                   {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">Description</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Brief description of the dish..."
+                  rows={2}
+                  className="w-full bg-muted border border-border rounded-[4px] px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-foreground text-foreground resize-none"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">Description (Amharic)</label>
+                <textarea
+                  value={formData.descriptionAm}
+                  onChange={(e) => setFormData({ ...formData, descriptionAm: e.target.value })}
+                  placeholder="Amharic description..."
+                  rows={2}
+                  className="w-full bg-muted border border-border rounded-[4px] px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-foreground text-foreground resize-none"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">Prep Time (minutes)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.estimatedPrepTime}
+                  onChange={(e) => setFormData({ ...formData, estimatedPrepTime: e.target.value })}
+                  placeholder="e.g. 15"
+                  className="w-full bg-muted border border-border rounded-[4px] px-4 py-2.5 text-xs font-bold focus:outline-none focus:border-foreground text-foreground"
+                />
               </div>
           </div>
 
@@ -570,7 +610,7 @@ export default function MenuManager() {
             <button
               type="submit"
               disabled={upsertMutation.isPending || isUploading}
-              className="flex-1 px-6 py-4 bg-neutral-900 text-white text-[10px] font-black uppercase tracking-widest rounded-[4px] hover:bg-black shadow-lg flex justify-center items-center gap-2"
+              className="flex-1 px-6 py-4 bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest rounded-[4px] hover:bg-primary/90 shadow-lg flex justify-center items-center gap-2"
             >
               {upsertMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Changes"}
             </button>
@@ -588,8 +628,8 @@ export default function MenuManager() {
         <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
           {versions.length === 0 ? (
             <div className="text-center py-8">
-              <Archive className="w-8 h-8 text-neutral-200 mx-auto mb-2" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-neutral-300">
+              <Archive className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                 No versions saved yet
               </p>
             </div>
@@ -597,13 +637,13 @@ export default function MenuManager() {
             versions.map((v) => (
               <div
                 key={v.id}
-                className="flex items-center justify-between p-4 bg-neutral-50 rounded-[6px] border border-neutral-100"
+                className="flex items-center justify-between p-4 bg-muted rounded-[6px] border border-border"
               >
                 <div>
-                  <p className="text-xs font-black text-neutral-900 uppercase tracking-tight">
+                  <p className="text-xs font-black text-foreground uppercase tracking-tight">
                     {v.name}
                   </p>
-                  <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">
                     {new Date(v.createdAt).toLocaleDateString()} at{" "}
                     {new Date(v.createdAt).toLocaleTimeString()}
                   </p>
@@ -616,7 +656,7 @@ export default function MenuManager() {
                     v.status === "draft" &&
                       "bg-amber-50 text-amber-600 border-amber-100",
                     v.status === "archived" &&
-                      "bg-neutral-100 text-neutral-400 border-neutral-200",
+                      "bg-muted text-muted-foreground border-border",
                   )}
                 >
                   {v.status === "published" && <FileText className="w-3 h-3 inline mr-1" />}
@@ -638,7 +678,7 @@ export default function MenuManager() {
         description="This action cannot be undone"
       >
         <div className="text-center space-y-6">
-          <p className="text-sm font-bold text-neutral-900 uppercase tracking-tight">
+          <p className="text-sm font-bold text-foreground uppercase tracking-tight">
             Delete "{itemToDelete?.name}"?
           </p>
           <div className="flex flex-col gap-2">
@@ -651,7 +691,7 @@ export default function MenuManager() {
             </button>
             <button
               onClick={() => setIsDeleteModalOpen(false)}
-              className="w-full py-4 border border-neutral-200 text-neutral-400 text-[10px] font-black uppercase tracking-widest hover:text-neutral-900 transition-colors"
+              className="w-full py-4 border border-border text-muted-foreground text-[10px] font-black uppercase tracking-widest hover:text-foreground transition-colors"
             >
               Cancel
             </button>

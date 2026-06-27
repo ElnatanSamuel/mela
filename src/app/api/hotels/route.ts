@@ -11,7 +11,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { name, slug, location, phone, userId, logoUrl } = await req.json();
+    const { name, slug, location, phone, userId, fullName, logoUrl } = await req.json();
 
     if (!name || !slug || !userId) {
       return NextResponse.json({ error: "Name, slug, and userId are required" }, { status: 400 });
@@ -33,6 +33,7 @@ export async function POST(req: Request) {
     await db.insert(hotelUsers).values({
       hotelId: hotel.id,
       userId,
+      name: fullName || null,
       role: "owner",
     });
 

@@ -72,7 +72,7 @@ export default function HotelDirectoryPage() {
         </div>
       </div>
 
-      <div className="bg-card border border-border rounded-[6px] overflow-hidden shadow-sm">
+      <div className="bg-card rounded-[6px] shadow-sm dark:shadow-black/10 overflow-hidden">
         <div className="overflow-x-auto">
           {loading ? (
             <div className="p-12 text-center">

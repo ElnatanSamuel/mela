@@ -172,7 +172,7 @@ export default function LiveOrderBoard({
       case "completed":
         return "bg-green-50 text-green-700 border-green-200";
       default:
-        return "bg-neutral-50 text-neutral-600 border-neutral-200";
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
@@ -201,18 +201,18 @@ export default function LiveOrderBoard({
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white border border-neutral-200 rounded-[6px] p-6 shadow-sm hover:shadow-md transition-all flex flex-col h-full group"
+                className="bg-card border border-border rounded-[6px] p-6 shadow-sm dark:shadow-black/10 hover:shadow-md transition-all flex flex-col h-full group"
               >
                 <div className="flex justify-between items-start mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-neutral-50 rounded-xl flex items-center justify-center border border-neutral-100 group-hover:border-neutral-200 transition-colors">
-                      <Utensils className="w-5 h-5 text-neutral-400" />
+                    <div className="w-10 h-10 bg-muted rounded-xl flex items-center justify-center border border-border group-hover:border-muted-foreground/20 transition-colors">
+                       <Utensils className="w-5 h-5 text-muted-foreground" />
                     </div>
                     <div>
-                      <h3 className="text-[10px] font-black text-neutral-400 uppercase tracking-widest leading-none mb-1">
+                      <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1">
                         Table {order.tableNumber || "12"}
                       </h3>
-                      <p className="text-sm font-black text-neutral-900 leading-none">
+                      <p className="text-sm font-black text-foreground leading-none">
                         #{order.id.slice(0, 6)}
                       </p>
                     </div>
@@ -227,7 +227,7 @@ export default function LiveOrderBoard({
                       {order.status}
                     </div>
                     {order.order_type === "cash" && (
-                      <span className="text-[8px] font-black uppercase tracking-widest text-neutral-400">
+                      <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">
                         Cash
                       </span>
                     )}
@@ -240,32 +240,32 @@ export default function LiveOrderBoard({
                 </div>
 
                 <div className="flex-1 space-y-4">
-                  <div className="flex items-center gap-2 text-xs font-medium text-neutral-400">
+                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                     <Clock className="w-3.5 h-3.5" />
                     <span>
                       Placed{" "}
-                      {new Date(order.created_at).toLocaleTimeString([], {
+                      {new Date(order.created_at).toLocaleTimeString("en-GB", {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
                     </span>
                   </div>
 
-                  <div className="p-4 bg-neutral-50 rounded-[6px] border border-neutral-100 flex justify-between items-center group-hover:bg-white group-hover:border-neutral-200 transition-all">
-                    <span className="text-[10px] text-neutral-400 font-black uppercase tracking-widest">
+                  <div className="p-4 bg-muted rounded-[6px] border border-border flex justify-between items-center group-hover:bg-card group-hover:border-muted-foreground/20 transition-all">
+                    <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">
                       Amount
                     </span>
-                    <span className="text-sm font-black text-neutral-900">
+                    <span className="text-sm font-black text-foreground">
                       {formatCurrency(order.total_amount)}
                     </span>
                   </div>
                 </div>
 
-                <div className="mt-6 pt-5 border-t border-neutral-100 space-y-2">
+                <div className="mt-6 pt-5 border-t border-border space-y-2">
                   {order.payment_status === "paid" && order.status !== "completed" && (
                     <button
                       onClick={() => setRefundOrderId(order.id)}
-                      className="w-full bg-red-50 text-red-600 border border-red-200 font-black py-2.5 rounded-[6px] hover:bg-red-100 transition-all flex items-center justify-center gap-2 text-[9px] uppercase tracking-widest"
+                      className="w-full bg-destructive/10 text-destructive border border-destructive/20 font-black py-2.5 rounded-[6px] hover:bg-destructive/20 transition-all flex items-center justify-center gap-2 text-[9px] uppercase tracking-widest"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                       Refund
@@ -296,7 +296,7 @@ export default function LiveOrderBoard({
                         })
                       }
                       disabled={isUpdating}
-                      className="w-full bg-neutral-900 text-white font-black py-3.5 rounded-[6px] hover:bg-neutral-800 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest disabled:opacity-50 shadow-lg shadow-neutral-200"
+                      className="w-full bg-primary text-primary-foreground font-black py-3 rounded-[6px] hover:bg-primary/90 transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest disabled:opacity-50 shadow-lg"
                     >
                       {isUpdating ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -321,11 +321,11 @@ export default function LiveOrderBoard({
       </AnimatePresence>
 
       {orders.filter((o) => o.status !== "completed").length === 0 && (
-        <div className="col-span-full py-20 flex flex-col items-center justify-center space-y-4 bg-white border-2 border-dashed border-neutral-200 rounded-[6px]">
-          <div className="w-16 h-16 bg-neutral-50 rounded-full flex items-center justify-center">
-            <CheckCircle2 className="w-8 h-8 text-neutral-200" />
+        <div className="col-span-full py-20 flex flex-col items-center justify-center space-y-4 bg-card border-2 border-dashed border-border rounded-[6px]">
+          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center">
+            <CheckCircle2 className="w-8 h-8 text-muted-foreground/30" />
           </div>
-          <p className="text-neutral-400 font-bold uppercase tracking-widest text-xs">
+          <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">
             All caught up! No active orders.
           </p>
         </div>
@@ -334,13 +334,13 @@ export default function LiveOrderBoard({
       {/* Refund Modal */}
       {refundOrderId && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border-2 border-neutral-900 w-full max-w-md shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-[4px] overflow-hidden">
-            <div className="p-6 border-b border-neutral-100 flex items-center justify-between bg-neutral-50">
+          <div className="bg-card border-2 border-border w-full max-w-md shadow-xl rounded-[6px] overflow-hidden">
+            <div className="p-6 border-b border-border flex items-center justify-between bg-muted">
               <div className="space-y-0.5">
-                <h3 className="text-sm font-black text-neutral-900 uppercase tracking-widest">
+                <h3 className="text-sm font-black text-foreground uppercase tracking-widest">
                   Refund Order
                 </h3>
-                <p className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest">
+                <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
                   #{refundOrderId.slice(0, 6)}
                 </p>
               </div>
@@ -349,21 +349,21 @@ export default function LiveOrderBoard({
                   setRefundOrderId(null);
                   setRefundReason("");
                 }}
-                className="p-1 hover:bg-neutral-200 rounded transition-colors"
+                className="p-1 hover:bg-muted rounded transition-colors"
               >
-                <X className="w-4 h-4 text-neutral-900" />
+                <X className="w-4 h-4 text-foreground" />
               </button>
             </div>
             <div className="p-8 space-y-6">
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400 block mb-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-2">
                   Reason
                 </label>
                 <textarea
                   value={refundReason}
                   onChange={(e) => setRefundReason(e.target.value)}
                   placeholder="Why refund?"
-                  className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-black resize-none h-24"
+                  className="w-full bg-muted border border-border rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-foreground resize-none h-24 text-foreground"
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -393,7 +393,7 @@ export default function LiveOrderBoard({
                     setRefundOrderId(null);
                     setRefundReason("");
                   }}
-                  className="w-full py-4 border border-neutral-200 text-neutral-400 text-[10px] font-black uppercase tracking-widest hover:text-neutral-900 transition-all"
+                  className="w-full py-4 border border-border text-muted-foreground text-[10px] font-black uppercase tracking-widest hover:text-foreground transition-all"
                 >
                   Cancel
                 </button>

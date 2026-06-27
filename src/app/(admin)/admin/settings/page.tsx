@@ -32,7 +32,7 @@ export default async function SettingsPage() {
       </div>
 
       <form action={updateSystemSettings} className="space-y-8">
-        <div className="bg-card border border-border rounded-[6px] p-8 shadow-sm space-y-8">
+        <div className="bg-card rounded-[6px] p-8 shadow-sm dark:shadow-black/10 space-y-8">
           <div className="flex items-center gap-3 mb-2">
             <Globe className="w-4 h-4 text-foreground" />
             <h3 className="text-xs font-black text-foreground uppercase tracking-widest">Brand</h3>
@@ -62,7 +62,7 @@ export default async function SettingsPage() {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-[6px] p-8 shadow-sm space-y-8">
+        <div className="bg-card rounded-[6px] p-8 shadow-sm dark:shadow-black/10 space-y-8">
           <div className="flex items-center gap-3">
             <Mail className="w-4 h-4 text-foreground" />
             <h3 className="text-xs font-black text-foreground uppercase tracking-widest">Support</h3>
@@ -92,7 +92,7 @@ export default async function SettingsPage() {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-[6px] p-8 shadow-sm space-y-8">
+        <div className="bg-card rounded-[6px] p-8 shadow-sm dark:shadow-black/10 space-y-8">
           <div className="flex items-center gap-3">
             <Percent className="w-4 h-4 text-foreground" />
             <h3 className="text-xs font-black text-foreground uppercase tracking-widest">Default Rates</h3>
@@ -122,7 +122,7 @@ export default async function SettingsPage() {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-[6px] p-8 shadow-sm space-y-8">
+        <div className="bg-card rounded-[6px] p-8 shadow-sm dark:shadow-black/10 space-y-8">
           <div className="flex items-center gap-3">
             <Coins className="w-4 h-4 text-foreground" />
             <h3 className="text-xs font-black text-foreground uppercase tracking-widest">Subscription Pricing</h3>
@@ -153,7 +153,7 @@ export default async function SettingsPage() {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-[6px] p-8 shadow-sm space-y-8">
+        <div className="bg-card rounded-[6px] p-8 shadow-sm dark:shadow-black/10 space-y-8">
           <div className="flex items-center gap-3">
             <Calendar className="w-4 h-4 text-foreground" />
             <h3 className="text-xs font-black text-foreground uppercase tracking-widest">Subscription Rules</h3>
@@ -187,7 +187,7 @@ export default async function SettingsPage() {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-[6px] p-8 shadow-sm space-y-8">
+        <div className="bg-card rounded-[6px] p-8 shadow-sm dark:shadow-black/10 space-y-8">
           <div className="flex items-center gap-3">
             <Globe className="w-4 h-4 text-foreground" />
             <h3 className="text-xs font-black text-foreground uppercase tracking-widest">Maintenance</h3>
@@ -221,7 +221,7 @@ export default async function SettingsPage() {
         </div>
       </form>
 
-      <div className="p-6 bg-muted border border-border rounded-[6px] flex items-start gap-4">
+      <div className="p-6 bg-muted rounded-[6px] flex items-start gap-4">
         <Info className="w-5 h-5 text-muted-foreground mt-0.5" />
         <div>
           <p className="text-[10px] font-black text-foreground uppercase tracking-widest">Note</p>
