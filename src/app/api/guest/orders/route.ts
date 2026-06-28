@@ -75,13 +75,11 @@ export async function POST(req: Request) {
     const tip = parseFloat(tipAmount || "0");
     const finalAmount = Math.max(0, totalAmount - discount + tip);
 
-    const isDigital = orderType === "digital";
-
     const [newOrder] = await db.insert(orders).values({
       hotelId,
       tableId,
-      status: isDigital ? "pending" : "pending",
-      paymentStatus: isDigital ? "paid" : "unpaid",
+      status: "pending",
+      paymentStatus: "unpaid",
       orderType: orderType || "cash",
       totalAmount: finalAmount.toFixed(2),
       vatAmount: vatAmount.toFixed(2),
@@ -90,16 +88,6 @@ export async function POST(req: Request) {
       discountAmount: discount.toFixed(2),
       tipAmount: tip.toFixed(2),
     }).returning();
-
-    if (isDigital) {
-      await db.insert(transactions).values({
-        orderId: newOrder.id,
-        hotelId,
-        amount: finalAmount.toFixed(2),
-        paymentMethod: "chapa",
-        status: "success",
-      }).returning();
-    }
 
     if (promoCodeId) {
       await db
@@ -115,7 +103,7 @@ export async function POST(req: Request) {
         orderId: newOrder.id,
         hotelId,
         amount: tip.toFixed(2),
-        method: isDigital ? "digital" : "cash",
+        method: orderType === "digital" ? "digital" : "cash",
       });
     }
 

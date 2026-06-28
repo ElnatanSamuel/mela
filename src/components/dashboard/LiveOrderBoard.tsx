@@ -38,9 +38,11 @@ interface Order {
 export default function LiveOrderBoard({
   initialOrders,
   hotelId,
+  role,
 }: {
   initialOrders: Order[];
   hotelId?: string;
+  role?: string;
 }) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [refundOrderId, setRefundOrderId] = useState<string | null>(null);
@@ -262,7 +264,7 @@ export default function LiveOrderBoard({
                 </div>
 
                 <div className="mt-6 pt-5 border-t border-border space-y-2">
-                  {order.payment_status === "paid" && order.status !== "completed" && (
+                  {role !== "waiter" && order.payment_status === "paid" && order.status !== "completed" && (
                     <button
                       onClick={() => setRefundOrderId(order.id)}
                       className="w-full bg-destructive/10 text-destructive border border-destructive/20 font-black py-2.5 rounded-[6px] hover:bg-destructive/20 transition-all flex items-center justify-center gap-2 text-[9px] uppercase tracking-widest"
@@ -271,7 +273,7 @@ export default function LiveOrderBoard({
                       Refund
                     </button>
                   )}
-                  {needsPayment && (
+                  {role !== "waiter" && needsPayment && (
                     <button
                       onClick={() => verifyPaymentMutation.mutate({ id: order.id })}
                       disabled={isVerifying}
@@ -287,7 +289,7 @@ export default function LiveOrderBoard({
                       )}
                     </button>
                   )}
-                  {nextStatus && !needsPayment && (
+                  {role !== "waiter" && nextStatus && !needsPayment && (
                     <button
                       onClick={() =>
                         updateStatusMutation.mutate({
@@ -308,10 +310,19 @@ export default function LiveOrderBoard({
                       )}
                     </button>
                   )}
-                  {!nextStatus && !needsPayment && (
+                  {role !== "waiter" && !nextStatus && !needsPayment && (
                     <div className="flex items-center justify-center gap-2 text-green-600 text-[10px] font-black uppercase tracking-widest py-3 bg-green-50 rounded-xl border border-green-100">
                       <CheckCircle2 className="w-4 h-4" />
                       Order Completed
+                    </div>
+                  )}
+                  {role === "waiter" && (
+                    <div className="flex items-center justify-center gap-2 text-muted-foreground text-[10px] font-black uppercase tracking-widest py-3">
+                      {order.status === "served" ? (
+                        <><CheckCircle2 className="w-4 h-4 text-green-500" /> Ready to serve</>
+                      ) : (
+                        <>Status: {order.status}</>
+                      )}
                     </div>
                   )}
                 </div>

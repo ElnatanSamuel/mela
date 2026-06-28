@@ -16,11 +16,14 @@ import {
   CheckCircle2,
   Clock,
   ChevronRight,
-  ChevronUp,
   X,
   Utensils,
+  Flame,
+  Leaf,
+  Sparkles,
 } from "lucide-react";
 import { ServiceRequestButton } from "./ServiceRequestButton";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface PromoCodeResult {
   valid: boolean;
@@ -102,6 +105,8 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
   const [customerPhone, setCustomerPhone] = useState("");
   const [showComplaintModal, setShowComplaintModal] = useState(false);
   const [complaintMessage, setComplaintMessage] = useState("");
+  const [currentOrderTotal, setCurrentOrderTotal] = useState<string | null>(null);
+  const [currentOrderPaymentType, setCurrentOrderPaymentType] = useState<string | null>(null);
 
   const fasting = useMemo(() => getFastingState(), []);
 
@@ -140,59 +145,30 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
 
   const [liveItems, setLiveItems] = useState<MenuItem[]>(menuItems);
 
-  useEffect(() => {
-    setLiveItems(menuItems);
-  }, [menuItems]);
+  useEffect(() => { setLiveItems(menuItems); }, [menuItems]);
 
   useEffect(() => {
     const channel = supabase
       .channel(`menu-items-${hotelId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "menu_items",
-          filter: `hotel_id=eq.${hotelId}`,
-        },
-        (payload) => {
-          if (payload.eventType === "UPDATE") {
-            const updated = payload.new as MenuItem;
-            setLiveItems((prev) =>
-              prev.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)),
-            );
-          }
-        },
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "menu_items", filter: `hotel_id=eq.${hotelId}` }, (payload) => {
+        if (payload.eventType === "UPDATE") {
+          const updated = payload.new as MenuItem;
+          setLiveItems((prev) => prev.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)));
+        }
+      })
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [hotelId]);
 
   useEffect(() => {
     if (!activeOrderId) return;
-
     const channel = supabase
       .channel(`order-${activeOrderId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "orders",
-          filter: `id=eq.${activeOrderId}`,
-        },
-        (payload) => {
-          setOrderStatus(payload.new.status);
-        },
-      )
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${activeOrderId}` }, (payload) => {
+        setOrderStatus(payload.new.status);
+      })
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [activeOrderId]);
 
   const placeOrderMutation = useMutation({
@@ -201,10 +177,7 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          hotelId,
-          tableId,
-          cartItems: cart,
-          orderType: paymentMethod,
+          hotelId, tableId, cartItems: cart, orderType: paymentMethod,
           promoCodeId: appliedPromo?.promoCode?.id || null,
           discountAmount: appliedPromo?.discount?.toFixed(2) || "0",
           tipAmount: (selectedTip > 0 ? selectedTip : 0).toFixed(2),
@@ -215,38 +188,24 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
       return res.json();
     },
     onSuccess: async (data, paymentMethod) => {
+      setCurrentOrderTotal(data.totalAmount);
+      setCurrentOrderPaymentType(paymentMethod);
       if (paymentMethod === "digital") {
-        // Initialize Chapa payment
         try {
           const txRef = `mela-${data.id}-${Date.now()}`;
           const chapaRes = await fetch("/api/pay/chapa", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              amount: parseFloat(data.totalAmount),
-              txRef,
-              firstName: "Guest",
-              hotelName,
-            }),
+            body: JSON.stringify({ amount: parseFloat(data.totalAmount), txRef, firstName: "Guest", hotelName }),
           });
           const chapaData = await chapaRes.json();
           if (chapaData.checkoutUrl) {
-            // Store order info in sessionStorage for after redirect
-            sessionStorage.setItem("mela-pending-order", JSON.stringify({
-              orderId: data.id,
-              txRef,
-              hotelId,
-              tableId,
-            }));
+            sessionStorage.setItem("mela-pending-order", JSON.stringify({ orderId: data.id, txRef, hotelId, tableId }));
             window.location.href = chapaData.checkoutUrl;
             return;
           }
-        } catch (err) {
-          console.error("Chapa init failed:", err);
-        }
+        } catch (err) { console.error("Chapa init failed:", err); }
       }
-
-      // Cash or Chapa failed — show order directly
       setActiveOrderId(data.id);
       setOrderStatus(data.status);
       setCart({});
@@ -256,6 +215,10 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
       setCustomTipAmount("");
       setCustomerPhone("");
       setIsCheckoutOpen(false);
+    },
+    onError: (error) => {
+      console.error("Place order failed:", error);
+      alert("Failed to place order. Please try again.");
     },
   });
 
@@ -269,37 +232,40 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
       if (!res.ok) throw new Error("Failed to submit complaint");
       return res.json();
     },
-    onSuccess: () => {
-      setShowComplaintModal(false);
-      setComplaintMessage("");
+    onSuccess: () => { setShowComplaintModal(false); setComplaintMessage(""); },
+  });
+
+  const payNowMutation = useMutation({
+    mutationFn: async () => {
+      if (!activeOrderId || !currentOrderTotal) throw new Error("No order to pay");
+      const txRef = `mela-${activeOrderId}-${Date.now()}`;
+      const chapaRes = await fetch("/api/pay/chapa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: parseFloat(currentOrderTotal), txRef, firstName: "Guest", hotelName }),
+      });
+      const chapaData = await chapaRes.json();
+      if (!chapaData.checkoutUrl) throw new Error("Chapa init failed");
+      sessionStorage.setItem("mela-pending-order", JSON.stringify({ orderId: activeOrderId, txRef, hotelId, tableId }));
+      window.location.href = chapaData.checkoutUrl;
     },
   });
 
   const handleAddItem = (item: MenuItem) => {
     if (!item.isAvailable) return;
-    if (item.hasModifiers) {
-      setModifierItem(item);
-    } else {
-      setCart((prev) => {
-        const current = prev[item.id]?.qty || 0;
-        return { ...prev, [item.id]: { qty: current + 1, modifiers: [] } };
-      });
-    }
+    if (item.hasModifiers) { setModifierItem(item); return; }
+    setCart((prev) => {
+      const current = prev[item.id]?.qty || 0;
+      return { ...prev, [item.id]: { qty: current + 1, modifiers: [] } };
+    });
   };
 
   const handleModifierConfirm = (selected: any[], addon: number) => {
     if (!modifierItem) return;
-    const mapped = selected.map((m: any) => ({
-      id: m.id,
-      name: m.name,
-      priceDelta: parseFloat(m.priceModifier || "0"),
-    }));
+    const mapped = selected.map((m: any) => ({ id: m.id, name: m.name, priceDelta: parseFloat(m.priceModifier || "0") }));
     setCart((prev) => {
       const current = prev[modifierItem.id]?.qty || 0;
-      return {
-        ...prev,
-        [modifierItem.id]: { qty: current + 1, modifiers: mapped },
-      };
+      return { ...prev, [modifierItem.id]: { qty: current + 1, modifiers: mapped } };
     });
     setModifierItem(null);
   };
@@ -308,10 +274,7 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
     setCart((prev) => {
       const current = prev[id]?.qty || 0;
       const next = Math.max(0, current + delta);
-      if (next === 0) {
-        const { [id]: _, ...rest } = prev;
-        return rest;
-      }
+      if (next === 0) { const { [id]: _, ...rest } = prev; return rest; }
       return { ...prev, [id]: { ...prev[id], qty: next } };
     });
   };
@@ -338,261 +301,176 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
   }, [liveItems, fasting.isFastingDay]);
 
   const filteredItems = sortedItems.filter(
-    (item) =>
-      item.name.toLowerCase().includes(search.toLowerCase()) ||
-      (item.nameAm && item.nameAm.toLowerCase().includes(search.toLowerCase())),
-  ).filter(
-    (item) => activeCategory === "all" || item.categoryId === activeCategory,
-  );
+    (item) => item.name.toLowerCase().includes(search.toLowerCase()) || (item.nameAm && item.nameAm.toLowerCase().includes(search.toLowerCase())),
+  ).filter((item) => activeCategory === "all" || item.categoryId === activeCategory);
 
   const groupedItems = categories
-    .map((cat) => ({
-      ...cat,
-      items: filteredItems.filter((item) => item.categoryId === cat.id),
-    }))
+    .map((cat) => ({ ...cat, items: filteredItems.filter((item) => item.categoryId === cat.id) }))
     .filter((group) => group.items.length > 0 || activeCategory === group.id);
 
+  // --- Order Tracking View ---
   if (activeOrderId) {
     const steps = [
-      { id: "pending", label: "Order Received", sub: "We got it" },
-      { id: "preparing", label: "In Kitchen", sub: "Being prepared" },
-      { id: "served", label: "Served", sub: "Enjoy" },
+      { id: "pending", label: "Order Placed", sub: "We received your order" },
+      { id: "preparing", label: "Being Prepared", sub: "The kitchen is cooking" },
+      { id: "served", label: "Ready", sub: "Enjoy your meal" },
     ];
-
-    const getCurrentStepIdx = () => {
-      if (orderStatus === "pending") return 0;
-      if (orderStatus === "preparing") return 1;
-      if (orderStatus === "served") return 2;
-      return 0;
-    };
-
-    const currentStepIdx = getCurrentStepIdx();
+    const currentStepIdx = orderStatus === "pending" ? 0 : orderStatus === "preparing" ? 1 : 2;
 
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center animate-in zoom-in-95 duration-500 text-neutral-900 dark:text-neutral-900">
-        <h2 className="text-2xl font-black text-neutral-900 uppercase tracking-tighter mb-4">
-          Order: {orderStatus}
-        </h2>
-        <p className="text-[10px] uppercase tracking-widest text-neutral-400 max-w-[200px] font-black mb-16">
-          Your items are being prepared.
-        </p>
+      <div className="px-4 py-12">
+        <div className="max-w-sm mx-auto text-center">
+          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-20 h-20 bg-stone-900 rounded-3xl flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 className="w-10 h-10 text-white" />
+          </motion.div>
 
-        <div className="relative w-full max-w-[240px]">
-          {steps.map((step, idx) => {
-            const isCompleted = idx < currentStepIdx || orderStatus === "served";
-            const isActive = idx === currentStepIdx;
-            const isLast = idx === steps.length - 1;
+          <h2 className="text-2xl font-black text-stone-900 uppercase tracking-tight mb-2">
+            {orderStatus === "served" ? "Order Ready!" : "Order Placed"}
+          </h2>
+          <p className="text-sm text-stone-400 mb-10">
+            {orderStatus === "served" ? "Your food is ready to enjoy" : "Sit tight, we're working on it"}
+          </p>
 
-            return (
-              <div
-                key={step.id}
-                className={cn(
-                  "relative flex items-start gap-8 group",
-                  !isLast && "pb-12",
-                )}
-              >
-                {!isLast && (
-                  <div className="absolute left-[7px] top-4 w-[2px] h-full">
-                    <div className="absolute inset-0 bg-neutral-300" />
-                    <div
-                      className={cn(
-                        "absolute inset-x-0 top-0 bg-neutral-900 transition-all duration-700 ease-in-out",
-                        isCompleted ? "h-full" : "h-0",
-                      )}
-                    />
-                  </div>
-                )}
-
-                <div
-                  className={cn(
-                    "relative z-10 w-4 h-4 rounded-full flex items-center justify-center border-2 transition-all duration-500 shrink-0",
-                    isCompleted || isActive
-                      ? "bg-neutral-900 border-neutral-900 shadow-xl"
-                      : "bg-white border-neutral-400",
-                  )}
-                >
-                  {isActive && (
-                    <div className="absolute inset-0 rounded-full bg-neutral-900 animate-ping opacity-30" />
-                  )}
-                </div>
-
-                <div className="flex flex-col text-left pt-0">
-                  <span
-                    className={cn(
-                      "text-xs font-black uppercase tracking-widest transition-colors duration-500",
-                      isCompleted || isActive
-                        ? "text-neutral-900"
-                        : "text-neutral-300",
-                    )}
-                  >
-                    {step.label}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-[10px] font-medium transition-colors duration-500",
-                      isCompleted || isActive
-                        ? "text-neutral-400"
-                        : "text-neutral-200",
-                    )}
-                  >
-                    {step.sub}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <button
-          onClick={() => setActiveOrderId(null)}
-          className="mt-12 text-[10px] font-black uppercase border border-neutral-300 py-4 px-6 w-full max-w-[240px] tracking-widest text-neutral-700 hover:text-neutral-900 hover:border-neutral-900 transition-all active:scale-95 rounded-[4px]"
-        >
-          Order Again
-        </button>
-
-        <button
-          onClick={() => setShowComplaintModal(true)}
-          className="mt-4 text-[10px] font-black uppercase py-3 px-6 w-full max-w-[240px] tracking-widest text-neutral-400 hover:text-red-500 transition-all rounded-[4px]"
-        >
-          Report Issue
-        </button>
-
-        {showComplaintModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowComplaintModal(false)}>
-            <div className="bg-white rounded-[6px] border border-neutral-200 w-full max-w-md p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-              <h3 className="text-sm font-black uppercase tracking-widest text-neutral-900 mb-4">Report an Issue</h3>
-              <textarea
-                value={complaintMessage}
-                onChange={(e) => setComplaintMessage(e.target.value)}
-                placeholder="Tell us what went wrong..."
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-neutral-900 resize-none h-24"
-                autoFocus
-              />
-              <div className="flex gap-2 mt-4">
-                <button
-                  onClick={() => {
-                    if (complaintMessage.trim()) {
-                      complaintMutation.mutate(complaintMessage);
-                    }
-                  }}
-                  disabled={!complaintMessage.trim() || complaintMutation.isPending}
-                  className="flex-1 py-3 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest rounded-[4px] hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {complaintMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Submit"}
-                </button>
-                <button
-                  onClick={() => { setShowComplaintModal(false); setComplaintMessage(""); }}
-                  className="flex-1 py-3 border border-neutral-200 text-neutral-400 text-[10px] font-black uppercase tracking-widest hover:text-neutral-900 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-              {complaintMutation.isSuccess && (
-                <p className="text-[10px] text-green-600 font-bold uppercase tracking-widest mt-3 text-center">Submitted. Thank you!</p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-24 bg-neutral-100 rounded-[6px] animate-pulse" />
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-10 animate-in fade-in duration-700 pb-24 text-neutral-900 dark:text-neutral-900">
-      {/* Combos Section */}
-      {combos.length > 0 && !search && activeCategory === "all" && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-black text-neutral-900 uppercase tracking-tighter shrink-0">
-              Combos
-            </h2>
-            <div className="h-[1px] bg-neutral-200 flex-1" />
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {combos.map((combo) => {
-              const inCart = combo.items.every((item) => cart[item.menuItemId]);
+          <div className="space-y-0 mb-10">
+            {steps.map((step, idx) => {
+              const isCompleted = idx < currentStepIdx || orderStatus === "served";
+              const isActive = idx === currentStepIdx;
               return (
-                <div
-                  key={combo.id}
-                  className="bg-white border-2 border-neutral-900 rounded-[6px] p-4 shadow-sm"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <h3 className="text-sm font-black text-neutral-900 uppercase tracking-tight">
-                      {combo.name}
-                    </h3>
-                    {combo.savings > 0 && (
-                      <span className="bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest">
-                        Save {formatCurrency(combo.savings.toString())}
-                      </span>
-                    )}
+                <div key={step.id} className="flex items-start gap-4 relative">
+                  {idx < steps.length - 1 && (
+                    <div className="absolute left-[15px] top-8 w-[2px] h-8">
+                      <div className={cn("w-full h-full transition-colors duration-500", isCompleted ? "bg-stone-900" : "bg-stone-200")} />
+                    </div>
+                  )}
+                  <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-500 z-10", isCompleted ? "bg-stone-900" : isActive ? "bg-stone-900 ring-4 ring-stone-100" : "bg-stone-200")}>
+                    {isCompleted && <CheckCircle2 className="w-4 h-4 text-white" />}
+                    {isActive && !isCompleted && <div className="w-2 h-2 bg-white rounded-full animate-pulse" />}
                   </div>
-                  <div className="text-[10px] text-neutral-500 font-medium space-y-0.5 mb-4">
-                    {combo.items.map((item, idx) => (
-                      <div key={idx}>
-                        {item.quantity}x {item.name}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-base font-black text-neutral-900">
-                      {formatCurrency(combo.totalPrice)}
-                    </span>
-                    <button
-                      onClick={() => handleAddCombo(combo)}
-                      disabled={inCart}
-                      className="bg-neutral-900 text-white px-4 py-2 rounded-[4px] text-[9px] font-black uppercase tracking-widest disabled:opacity-50"
-                    >
-                      {inCart ? "Added" : "Add Combo"}
-                    </button>
+                  <div className="pb-8 pt-1">
+                    <p className={cn("text-sm font-bold transition-colors", isCompleted || isActive ? "text-stone-900" : "text-stone-300")}>{step.label}</p>
+                    <p className={cn("text-xs transition-colors", isCompleted || isActive ? "text-stone-400" : "text-stone-200")}>{step.sub}</p>
                   </div>
                 </div>
               );
             })}
           </div>
-        </div>
-      )}
 
-      {/* Fasting Day Banner */}
-      {fasting.isFastingDay && (
-        <div className="bg-orange-50 border border-orange-200 rounded-[6px] p-4 flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shrink-0" />
-            <p className="text-[10px] font-black text-orange-800 uppercase tracking-widest">
-              Fasting day (የጾም ቀን) — {fasting.seasonName}
-            </p>
-        </div>
-      )}
+          {orderStatus === "served" && currentOrderPaymentType === "cash" && (
+            <button onClick={() => payNowMutation.mutate()} disabled={payNowMutation.isPending} className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-50">
+              {payNowMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Pay with Chapa Now"}
+            </button>
+          )}
+          <button onClick={() => setActiveOrderId(null)} className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform">
+            Order Again
+          </button>
+          <button onClick={() => setShowComplaintModal(true)} className="w-full text-stone-400 py-3 text-xs font-bold uppercase tracking-widest mt-2">
+            Report an Issue
+          </button>
 
-      {/* Search & Categories */}
-      <div className="bg-neutral-50/90 pb-6 space-y-4">
-        <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+          {showComplaintModal && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowComplaintModal(false)}>
+              <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+                <h3 className="text-lg font-black uppercase tracking-tight text-stone-900 mb-4">What went wrong?</h3>
+                <textarea value={complaintMessage} onChange={(e) => setComplaintMessage(e.target.value)} placeholder="Tell us about your experience..." className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-stone-400 resize-none h-28" autoFocus />
+                <div className="flex gap-3 mt-4">
+                  <button onClick={() => { if (complaintMessage.trim()) complaintMutation.mutate(complaintMessage); }} disabled={!complaintMessage.trim() || complaintMutation.isPending} className="flex-1 py-3 bg-red-500 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all disabled:opacity-50">
+                    {complaintMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Submit"}
+                  </button>
+                  <button onClick={() => { setShowComplaintModal(false); setComplaintMessage(""); }} className="flex-1 py-3 border border-stone-200 text-stone-400 text-xs font-bold uppercase tracking-widest rounded-xl">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // --- Loading ---
+  if (isLoading) {
+    return (
+      <div className="px-4 py-8 space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-32 bg-stone-100 rounded-2xl animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  // --- Main Menu ---
+  return (
+    <div className="px-4 pb-32">
+      {/* Search */}
+      <div className="mb-6">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300" />
           <input
             type="text"
             placeholder="Search menu..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white border border-neutral-200 rounded-[6px] py-3 pl-12 pr-4 text-sm focus:outline-none focus:border-neutral-900 transition-all shadow-sm"
+            className="w-full bg-white border border-stone-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:outline-none focus:border-stone-400 transition-colors shadow-sm"
           />
         </div>
+      </div>
 
+      {/* Fasting Banner */}
+      {fasting.isFastingDay && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3">
+          <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+          <p className="text-xs font-bold text-amber-700">
+            የጾም ቀን — {fasting.seasonName}. Vegetarian options shown first.
+          </p>
+        </div>
+      )}
+
+      {/* Combos */}
+      {combos.length > 0 && !search && activeCategory === "all" && (
+        <div className="mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-4 h-4 text-amber-500" />
+            <h2 className="text-lg font-black text-stone-900 uppercase tracking-tight">Meal Deals</h2>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+            {combos.map((combo) => (
+              <div key={combo.id} className="min-w-[240px] bg-stone-900 text-white rounded-2xl p-5 flex-shrink-0">
+                <div className="flex items-start justify-between mb-3">
+                  <h3 className="text-sm font-black uppercase tracking-tight">{combo.name}</h3>
+                  {combo.savings > 0 && (
+                    <span className="bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full text-[9px] font-black uppercase">
+                      Save {formatCurrency(combo.savings.toString())}
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-1 mb-4 text-white/60 text-xs">
+                  {combo.items.map((item, idx) => (
+                    <div key={idx}>{item.quantity}x {item.name}</div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-black">{formatCurrency(combo.totalPrice)}</span>
+                  <button onClick={() => handleAddCombo(combo)} className="bg-white text-stone-900 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-transform">
+                    Add
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Category Pills */}
+      <div className="mb-8 -mx-4 px-4">
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
           <button
             onClick={() => setActiveCategory("all")}
             className={cn(
-              "px-5 py-2.5 rounded-[6px] text-[9px] font-black uppercase tracking-widest transition-all border shrink-0",
+              "px-5 py-2.5 rounded-full text-xs font-bold transition-all shrink-0",
               activeCategory === "all"
-                ? "bg-neutral-900 text-white border-neutral-900 shadow-md"
-                : "bg-white text-neutral-400 border-neutral-200",
+                ? "bg-stone-900 text-white shadow-lg"
+                : "bg-white text-stone-400 border border-stone-200"
             )}
           >
             All
@@ -602,10 +480,10 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
               className={cn(
-                "px-5 py-2.5 rounded-[6px] text-[9px] font-black uppercase tracking-widest transition-all border shrink-0",
+                "px-5 py-2.5 rounded-full text-xs font-bold transition-all shrink-0",
                 activeCategory === cat.id
-                  ? "bg-neutral-900 text-white border-neutral-900 shadow-md"
-                  : "bg-white text-neutral-400 border-neutral-200",
+                  ? "bg-stone-900 text-white shadow-lg"
+                  : "bg-white text-stone-400 border border-stone-200"
               )}
             >
               {cat.name}
@@ -614,126 +492,103 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
         </div>
       </div>
 
-      {/* Grouped List */}
-      <div className="space-y-12">
+      {/* Grouped Menu */}
+      <div className="space-y-10">
         {groupedItems.map((group) => (
-          <section key={group.id} className="space-y-6">
-            <div className="flex items-center gap-3">
-              <h2 className="text-lg font-black text-neutral-900 uppercase tracking-tighter shrink-0">
-                {group.name}
-              </h2>
-              <div className="h-[1px] bg-neutral-200 flex-1" />
-            </div>
+          <section key={group.id}>
+            <h2 className="text-xl font-black text-stone-900 uppercase tracking-tight mb-5">
+              {group.name}
+            </h2>
 
             <div className="space-y-3">
-              {group.items.map((item) => {
+              {group.items.map((item, i) => {
                 const isUnavailable = !item.isAvailable;
                 return (
-                  <div
+                  <motion.div
                     key={item.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03 }}
                     onClick={() => !isUnavailable && setDetailItem(item)}
                     className={cn(
-                      "bg-white border rounded-xl p-4 flex gap-4 transition-all shadow-sm",
-                      isUnavailable
-                        ? "border-neutral-100 opacity-50"
-                        : "border-neutral-100 active:bg-neutral-50 cursor-pointer",
+                      "bg-white rounded-2xl border border-stone-100 p-4 flex gap-4 transition-all shadow-sm",
+                      isUnavailable ? "opacity-40" : "active:scale-[0.98] cursor-pointer"
                     )}
                   >
-                    <div className="w-24 h-24 bg-neutral-100 rounded-xl overflow-hidden shrink-0 border border-neutral-200/50 relative">
+                    {/* Image */}
+                    <div className="w-28 h-28 bg-stone-100 rounded-xl overflow-hidden shrink-0 relative">
                       {item.imageUrl ? (
-                        <img
-                          src={item.imageUrl}
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                        />
+                        <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-neutral-200 text-[8px] font-black uppercase">
-                          No Photo
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Utensils className="w-6 h-6 text-stone-200" />
                         </div>
                       )}
-                      {isUnavailable && (
-                        <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
-                          <span className="text-[8px] font-black uppercase text-red-500 bg-white px-2 py-1 rounded-lg border border-red-200">
-                            Sold Out
-                          </span>
+                      {item.isDailySpecial && (
+                        <div className="absolute top-2 left-2 bg-amber-500 text-white px-2 py-0.5 rounded-full text-[8px] font-black uppercase">
+                          Special
                         </div>
                       )}
                     </div>
 
-                    <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
+                    {/* Info */}
+                    <div className="flex-1 flex flex-col justify-between min-w-0">
                       <div>
                         <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="font-bold text-neutral-900 uppercase tracking-tight text-sm leading-tight">
-                              {item.name}
-                            </h3>
-                            {item.isVegetarian && fasting.isFastingDay && (
-                              <span className="text-[7px] font-black uppercase tracking-widest text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded-md border border-orange-200">
-                                ጾም
-                              </span>
-                            )}
-                            {item.hasModifiers && (
-                              <span className="text-[7px] font-black uppercase tracking-widest text-neutral-400 bg-neutral-50 px-1.5 py-0.5 rounded-md border border-neutral-200">
-                                Custom
-                              </span>
-                            )}
-                          </div>
-                          <span className="font-black text-neutral-900 tracking-tighter text-sm whitespace-nowrap">
+                          <h3 className="font-bold text-stone-900 text-sm leading-tight">{item.name}</h3>
+                          <span className="font-black text-stone-900 text-sm whitespace-nowrap">
                             {formatCurrency(item.price)}
                           </span>
                         </div>
-                        {/* Description snippet */}
+                        {item.nameAm && (
+                          <p className="text-[11px] text-stone-300 mt-0.5">{item.nameAm}</p>
+                        )}
                         {item.description && (
-                          <p className="text-[11px] text-neutral-400 mt-1 line-clamp-1 leading-relaxed">
-                            {item.description}
-                          </p>
+                          <p className="text-xs text-stone-400 mt-1.5 line-clamp-2 leading-relaxed">{item.description}</p>
                         )}
-                        {/* Prep time */}
-                        {item.estimatedPrepTime && (
-                          <div className="flex items-center gap-1 mt-1.5">
-                            <Clock className="w-3 h-3 text-neutral-300" />
-                            <span className="text-[9px] font-bold text-neutral-300 uppercase tracking-widest">
-                              ~{item.estimatedPrepTime} min
+                        <div className="flex items-center gap-2 mt-2">
+                          {item.isVegetarian && (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                              <Leaf className="w-2.5 h-2.5" /> Veg
                             </span>
-                          </div>
-                        )}
+                          )}
+                          {item.isSpicy && (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
+                              <Flame className="w-2.5 h-2.5" /> Spicy
+                            </span>
+                          )}
+                          {item.estimatedPrepTime && (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-stone-400">
+                              <Clock className="w-2.5 h-2.5" /> {item.estimatedPrepTime}m
+                            </span>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex justify-end items-center mt-2">
+                      {/* Add to cart */}
+                      <div className="flex justify-end mt-2">
                         {cart[item.id] ? (
-                          <div
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-3 bg-neutral-900 text-white p-1 rounded-full border border-neutral-900 shadow-lg scale-90 origin-right"
-                          >
-                            <button
-                              onClick={() => updateCart(item.id, -1)}
-                              className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center active:bg-white/20"
-                            >
+                          <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 bg-stone-900 text-white rounded-full p-1">
+                            <button onClick={() => updateCart(item.id, -1)} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center active:bg-white/20">
                               <Minus className="w-3 h-3" />
                             </button>
-                            <span className="text-xs font-black w-4 text-center">
-                              {cart[item.id].qty}
-                            </span>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleAddItem(item); }}
-                              disabled={isUnavailable}
-                              className="w-8 h-8 rounded-full bg-white flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50"
-                            >
-                              <Plus className="w-3 h-3 text-neutral-900" />
+                            <span className="text-xs font-black w-5 text-center">{cart[item.id].qty}</span>
+                            <button onClick={(e) => { e.stopPropagation(); handleAddItem(item); }} className="w-8 h-8 rounded-full bg-white flex items-center justify-center active:scale-95 transition-transform">
+                              <Plus className="w-3 h-3 text-stone-900" />
                             </button>
                           </div>
                         ) : (
                           <button
                             onClick={(e) => { e.stopPropagation(); handleAddItem(item); }}
                             disabled={isUnavailable}
-                            className="bg-neutral-900 text-white px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest active:scale-95 transition-transform shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-stone-900 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-95 transition-transform disabled:opacity-30"
                           >
-                            {isUnavailable ? "Sold Out" : "Add"}
+                            Add
                           </button>
                         )}
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
@@ -741,300 +596,186 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
         ))}
       </div>
 
+      {/* Empty State */}
       {groupedItems.length === 0 && !isLoading && (
-        <div className="py-16 text-center">
-          <Utensils className="w-10 h-10 text-neutral-300 mx-auto mb-4" />
-          <p className="text-sm font-bold text-neutral-400">No items found</p>
-          <p className="text-[10px] text-neutral-500 mt-2">Try a different search or category</p>
+        <div className="py-20 text-center">
+          <Utensils className="w-12 h-12 text-stone-200 mx-auto mb-4" />
+          <p className="text-sm font-bold text-stone-300">No items found</p>
+          <p className="text-xs text-stone-200 mt-1">Try a different search or category</p>
         </div>
       )}
 
-      {/* Floating Slim Cart */}
-      {cartItemCount > 0 && (
-        <div className="fixed bottom-6 inset-x-6 z-50 animate-in slide-in-from-bottom-10 duration-500">
-          <button
-            onClick={() => setIsCheckoutOpen(true)}
-            className="w-full bg-neutral-900 dark:bg-neutral-900 text-white py-4 px-6 rounded-[6px] font-black text-[10px] uppercase tracking-widest shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex items-center justify-between group active:scale-[0.98] transition-transform border border-neutral-800 dark:border-neutral-700"
+      {/* Floating Cart */}
+      <AnimatePresence>
+        {cartItemCount > 0 && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-6 inset-x-4 z-[60]"
           >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                <ShoppingCart className="w-3.5 h-3.5" />
+            <button
+              onClick={() => setIsCheckoutOpen(true)}
+              className="w-full bg-stone-900 text-white py-4 px-6 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-between active:scale-[0.98] transition-transform"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center relative">
+                  <ShoppingCart className="w-3.5 h-3.5" />
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 rounded-full text-[8px] font-black flex items-center justify-center">
+                    {cartItemCount}
+                  </span>
+                </div>
+                <span>View Order</span>
               </div>
-              <span>Review Order ({cartItemCount})</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm tracking-tighter">
-                {formatCurrency(cartSubtotal.toString())}
-              </span>
-              <ChevronUp className="w-4 h-4 text-neutral-500" />
-            </div>
-          </button>
-        </div>
-      )}
+              <span className="text-sm tracking-tighter">{formatCurrency(cartSubtotal.toString())}</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Checkout Drawer */}
-      {isCheckoutOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-end justify-center">
-          <div className="bg-white dark:bg-white w-full max-w-2xl rounded-t-[24px] p-8 pb-10 animate-in slide-in-from-bottom-full duration-300">
-            <div className="flex justify-between items-center mb-10">
-              <h3 className="text-xl font-black text-neutral-900 uppercase tracking-tighter">
-                Your Selection
-              </h3>
-              <button onClick={() => setIsCheckoutOpen(false)} className="text-neutral-900">
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <div className="space-y-5 mb-10 max-h-[45vh] overflow-y-auto pr-2 scrollbar-hide">
-              {Object.entries(cart).map(([id, entry]) => {
-                const item = liveItems.find((m) => m.id === id);
-                const modifierNames = entry.modifiers.map((m) => m.name).join(", ");
-                const itemTotal =
-                  parseFloat(item?.price || "0") * entry.qty +
-                  entry.modifiers.reduce((s, m) => s + m.priceDelta, 0) * entry.qty;
-
-                return (
-                  <div key={id} className="flex justify-between items-start">
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 bg-neutral-50 border border-neutral-100 rounded-[4px] flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">
-                        {entry.qty}x
-                      </div>
-                      <div>
-                        <span className="font-bold text-neutral-900 text-sm block uppercase tracking-tight">
-                          {item?.name}
-                        </span>
-                        {modifierNames && (
-                          <span className="text-[9px] text-neutral-500 font-medium block mt-0.5">
-                            + {modifierNames}
-                          </span>
-                        )}
-                        <span className="text-[10px] text-neutral-400 font-black tracking-tighter">
-                          {formatCurrency(item?.price || "0")} each
-                        </span>
-                      </div>
-                    </div>
-                    <span className="font-black text-neutral-900 text-sm tracking-tighter shrink-0">
-                      {formatCurrency(itemTotal.toString())}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Phone Number */}
-            <div className="border-t border-neutral-100 pt-6 space-y-4">
-              <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400 block">
-                Phone (loyalty)
-              </span>
-              <input
-                type="tel"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="+251 9XX XXX XXX"
-                className="w-full bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-black"
-              />
-            </div>
-
-            {/* Promo Code */}
-            <div className="border-t border-neutral-100 pt-6 space-y-4">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={promoCodeInput}
-                  onChange={(e) => {
-                    setPromoCodeInput(e.target.value.toUpperCase());
-                    setAppliedPromo(null);
-                    setPromoError("");
-                  }}
-                  placeholder="Promo Code"
-                  className="flex-1 bg-neutral-50 border border-neutral-200 rounded-[4px] px-4 py-3 text-xs font-bold uppercase tracking-wider focus:outline-none focus:border-black"
-                />
-                <button
-                  onClick={async () => {
-                    if (!promoCodeInput.trim()) return;
-                    setIsPromoValidating(true);
-                    setPromoError("");
-                    setAppliedPromo(null);
-                    try {
-                      const res = await fetch("/api/promo-codes/validate", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ code: promoCodeInput.trim(), orderAmount: cartSubtotal.toString() }),
-                      });
-                      const data = await res.json();
-                      if (data.valid) {
-                        setAppliedPromo(data);
-                      } else {
-                        setPromoError(data.error || "Invalid code");
-                      }
-                    } catch {
-                      setPromoError("Failed to validate code");
-                    }
-                    setIsPromoValidating(false);
-                  }}
-                  disabled={isPromoValidating || !promoCodeInput.trim()}
-                  className="bg-neutral-900 text-white px-5 py-3 rounded-[4px] text-[9px] font-black uppercase tracking-widest hover:bg-black transition-all disabled:opacity-50 shrink-0"
-                >
-                  {isPromoValidating ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    "Apply"
-                  )}
-                </button>
+      <AnimatePresence>
+        {isCheckoutOpen && (
+          <div className="fixed inset-0 z-[100]" onClick={() => setIsCheckoutOpen(false)}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[85vh] flex flex-col"
+            >
+              {/* Handle */}
+              <div className="flex justify-center pt-3 pb-2">
+                <div className="w-10 h-1 bg-stone-200 rounded-full" />
               </div>
-              {promoError && (
-                <p className="text-[9px] font-bold text-red-500 uppercase tracking-widest">
-                  {promoError}
-                </p>
-              )}
-              {appliedPromo && (
-                <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-[4px] px-4 py-2">
-                  <span className="text-[9px] font-black text-green-700 uppercase tracking-widest">
-                    Code Applied: {appliedPromo.promoCode?.code}
-                  </span>
-                  <span className="text-xs font-black text-green-700">
-                    -{formatCurrency(appliedPromo.discount!.toString())}
-                  </span>
-                </div>
-              )}
-            </div>
 
-            {/* Tip Selection */}
-            <div className="border-t border-neutral-100 pt-6 space-y-4">
-              <span className="text-[10px] font-black uppercase tracking-widest text-neutral-400 block">
-                Tip
-              </span>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { label: "No Tip", value: 0 },
-                  { label: "10 ETB", value: 10 },
-                  { label: "20 ETB", value: 20 },
-                  { label: "50 ETB", value: 50 },
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => {
-                      setSelectedTip(opt.value);
-                      setCustomTipAmount("");
-                    }}
-                    className={`px-4 py-2.5 rounded-[4px] text-[9px] font-black uppercase tracking-widest border transition-all ${
-                      selectedTip === opt.value && !customTipAmount
-                        ? "bg-neutral-900 text-white border-neutral-900"
-                        : "bg-white text-neutral-500 border-neutral-200 hover:border-neutral-400"
-                    }`}
-                  >
-                    {opt.label}
+              <div className="px-6 pb-6 flex-1 overflow-y-auto">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-black text-stone-900 uppercase tracking-tight">Your Order</h3>
+                  <button onClick={() => setIsCheckoutOpen(false)} className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center">
+                    <X className="w-4 h-4 text-stone-500" />
                   </button>
-                ))}
-                <div className="relative">
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={customTipAmount}
-                    onChange={(e) => {
-                      setCustomTipAmount(e.target.value);
-                      setSelectedTip(e.target.value ? parseFloat(e.target.value) : 0);
-                    }}
-                    placeholder="Custom"
-                    className="w-24 bg-neutral-50 border border-neutral-200 rounded-[4px] px-3 py-2.5 text-[9px] font-bold focus:outline-none focus:border-black"
-                  />
                 </div>
-              </div>
-            </div>
 
-            <div className="border-t border-neutral-100 pt-8 space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">
-                  Subtotal
-                </span>
-                <span className="text-sm font-bold text-neutral-900">
-                  {formatCurrency(cartSubtotal.toString())}
-                </span>
-              </div>
-              {discountAmount > 0 && (
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-black text-green-600 uppercase tracking-widest">
-                    Discount
-                  </span>
-                  <span className="text-sm font-bold text-green-600">
-                    -{formatCurrency(discountAmount.toString())}
-                  </span>
+                {/* Items */}
+                <div className="space-y-4 mb-6">
+                  {Object.entries(cart).map(([id, entry]) => {
+                    const item = liveItems.find((m) => m.id === id);
+                    const modifierNames = entry.modifiers.map((m) => m.name).join(", ");
+                    const itemTotal = parseFloat(item?.price || "0") * entry.qty + entry.modifiers.reduce((s, m) => s + m.priceDelta, 0) * entry.qty;
+                    return (
+                      <div key={id} className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-stone-100 rounded-xl flex items-center justify-center text-xs font-black text-stone-500 shrink-0">
+                          {entry.qty}x
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-stone-900 truncate">{item?.name}</p>
+                          {modifierNames && <p className="text-[10px] text-stone-400 truncate">{modifierNames}</p>}
+                        </div>
+                        <span className="text-sm font-black text-stone-900">{formatCurrency(itemTotal.toString())}</span>
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
-              {selectedTip > 0 && (
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-black text-neutral-400 uppercase tracking-widest">
-                    Tip
-                  </span>
-                  <span className="text-sm font-bold text-neutral-900">
-                    {formatCurrency(selectedTip.toString())}
-                  </span>
+
+                {/* Phone */}
+                <div className="mb-4">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 block mb-2">Phone (for loyalty)</label>
+                  <input type="tel" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="+251 9XX XXX XXX" className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-stone-400" />
                 </div>
-              )}
-              <div className="flex justify-between items-end pt-2 border-t border-neutral-200">
-                <span className="text-neutral-900 font-black uppercase tracking-widest text-[12px]">
-                  Total Amount
-                </span>
-                <span className="text-2xl font-black text-neutral-900 tracking-tighter">
-                  {formatCurrency(cartTotal.toString())}
-                </span>
-              </div>
-              <div className="flex flex-col gap-3 pt-2">
-                <button
-                  onClick={() => placeOrderMutation.mutate("digital")}
-                  disabled={placeOrderMutation.isPending}
-                  className="w-full bg-neutral-900 text-white py-5 rounded-[6px] font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 hover:bg-black transition-all"
-                >
-                  {placeOrderMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <>
-                      Pay Now — {formatCurrency(cartTotal.toString())}
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </>
+
+                {/* Promo */}
+                <div className="mb-4">
+                  <div className="flex gap-2">
+                    <input type="text" value={promoCodeInput} onChange={(e) => { setPromoCodeInput(e.target.value.toUpperCase()); setAppliedPromo(null); setPromoError(""); }} placeholder="Promo Code" className="flex-1 bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm font-bold uppercase tracking-wider focus:outline-none focus:border-stone-400" />
+                    <button onClick={async () => {
+                      if (!promoCodeInput.trim()) return;
+                      setIsPromoValidating(true);
+                      try {
+                        const res = await fetch("/api/promo-codes/validate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: promoCodeInput.trim(), orderAmount: cartSubtotal.toString() }) });
+                        const data = await res.json();
+                        if (data.valid) setAppliedPromo(data);
+                        else setPromoError(data.error || "Invalid code");
+                      } catch { setPromoError("Failed"); }
+                      setIsPromoValidating(false);
+                    }} disabled={isPromoValidating || !promoCodeInput.trim()} className="bg-stone-900 text-white px-5 rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-50">
+                      {isPromoValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
+                    </button>
+                  </div>
+                  {promoError && <p className="text-[10px] font-bold text-red-500 mt-1">{promoError}</p>}
+                  {appliedPromo && (
+                    <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-4 py-2 mt-2">
+                      <span className="text-[10px] font-black text-green-700 uppercase">Applied: {appliedPromo.promoCode?.code}</span>
+                      <span className="text-xs font-black text-green-700">-{formatCurrency(appliedPromo.discount!.toString())}</span>
+                    </div>
                   )}
-                </button>
-                <button
-                  onClick={() => placeOrderMutation.mutate("cash")}
-                  disabled={placeOrderMutation.isPending}
-                  className="w-full border-2 border-neutral-900 text-neutral-900 py-5 rounded-[6px] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 disabled:opacity-50 hover:bg-neutral-50 transition-all"
-                >
-                  Pay at Counter
-                </button>
+                </div>
+
+                {/* Tip */}
+                <div className="mb-6">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 block mb-2">Add a Tip</label>
+                  <div className="flex gap-2">
+                    {[0, 10, 20, 50].map((v) => (
+                      <button key={v} onClick={() => { setSelectedTip(v); setCustomTipAmount(""); }} className={cn("flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all", selectedTip === v && !customTipAmount ? "bg-stone-900 text-white border-stone-900" : "bg-white text-stone-400 border-stone-200")}>
+                        {v === 0 ? "None" : `${v}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Totals */}
+                <div className="space-y-2 mb-6">
+                  <div className="flex justify-between text-xs text-stone-400">
+                    <span>Subtotal</span>
+                    <span className="font-bold">{formatCurrency(cartSubtotal.toString())}</span>
+                  </div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-xs text-green-600">
+                      <span>Discount</span>
+                      <span className="font-bold">-{formatCurrency(discountAmount.toString())}</span>
+                    </div>
+                  )}
+                  {selectedTip > 0 && (
+                    <div className="flex justify-between text-xs text-stone-400">
+                      <span>Tip</span>
+                      <span className="font-bold">{formatCurrency(selectedTip.toString())}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pt-2 border-t border-stone-100">
+                    <span className="text-sm font-black text-stone-900 uppercase tracking-widest">Total</span>
+                    <span className="text-xl font-black text-stone-900 tracking-tighter">{formatCurrency(cartTotal.toString())}</span>
+                  </div>
+                </div>
+
+                {/* Pay Buttons */}
+                <div className="space-y-3">
+                  <button onClick={() => placeOrderMutation.mutate("digital")} disabled={placeOrderMutation.isPending} className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-transform">
+                    {placeOrderMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Pay with Chapa — {formatCurrency(cartTotal.toString())}</>}
+                  </button>
+                  <button onClick={() => placeOrderMutation.mutate("cash")} disabled={placeOrderMutation.isPending} className="w-full border-2 border-stone-200 text-stone-500 py-4 rounded-2xl text-xs font-black uppercase tracking-widest disabled:opacity-50">
+                    Pay at Counter
+                  </button>
+                </div>
               </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* Service Request Buttons */}
-      {!activeOrderId && (
-        <ServiceRequestButton hotelId={hotelId} tableId={tableId} />
-      )}
+      {!activeOrderId && <ServiceRequestButton hotelId={hotelId} tableId={tableId} hasFloatingCart={cartItemCount > 0} />}
 
       {/* Modifier Sheet */}
       {modifierItem && (
-        <ItemModifierSheet
-          itemId={modifierItem.id}
-          itemName={modifierItem.name}
-          basePrice={modifierItem.price}
-          onConfirm={handleModifierConfirm}
-          onClose={() => setModifierItem(null)}
-        />
+        <ItemModifierSheet itemId={modifierItem.id} itemName={modifierItem.name} basePrice={modifierItem.price} onConfirm={handleModifierConfirm} onClose={() => setModifierItem(null)} />
       )}
 
       {/* Detail Sheet */}
       {detailItem && (
         <ItemDetailSheet
-          item={{
-            ...detailItem,
-            imageUrl: detailItem.imageUrl || null,
-            description: detailItem.description || null,
-            descriptionAm: detailItem.descriptionAm || null,
-            estimatedPrepTime: detailItem.estimatedPrepTime ?? null,
-          }}
+          item={{ ...detailItem, imageUrl: detailItem.imageUrl || null, description: detailItem.description || null, descriptionAm: detailItem.descriptionAm || null, estimatedPrepTime: detailItem.estimatedPrepTime ?? null }}
           cartQty={cart[detailItem.id]?.qty || 0}
           onAdd={() => handleAddItem(detailItem)}
           onRemove={() => updateCart(detailItem.id, -1)}

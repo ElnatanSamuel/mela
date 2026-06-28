@@ -5,7 +5,7 @@ import LiveOrderBoard from "@/components/dashboard/LiveOrderBoard";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 
-export default function OrdersContent({ hotelId }: { hotelId: string }) {
+export default function OrdersContent({ hotelId, role }: { hotelId: string; role: string }) {
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["live-orders"],
     queryFn: async () => {
@@ -29,7 +29,7 @@ export default function OrdersContent({ hotelId }: { hotelId: string }) {
         <h2 className="text-lg font-black text-foreground tracking-tighter uppercase">Live Orders</h2>
         <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Track and manage</p>
       </div>
-      <LiveOrderBoard initialOrders={orders} hotelId={hotelId} />
+      <LiveOrderBoard initialOrders={orders} hotelId={hotelId} role={role} />
     </div>
   );
 }

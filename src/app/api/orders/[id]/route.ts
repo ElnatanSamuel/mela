@@ -3,6 +3,27 @@ import { db } from "@/db";
 import { orders, orderItems, menuItems, hotels, tables } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getUserRole } from "@/lib/auth-utils";
+import { jwtVerify } from "jose";
+
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || "mela-kitchen-secret-key-2024");
+
+async function getKitchenSession(req: Request): Promise<{ hotelId: string } | null> {
+  try {
+    const cookieHeader = req.headers.get("cookie") || "";
+    const cookies = Object.fromEntries(
+      cookieHeader.split(";").map((c) => {
+        const [key, ...val] = c.trim().split("=");
+        return [key, val.join("=")];
+      })
+    );
+    const token = cookies["kitchen-session"];
+    if (!token) return null;
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    return { hotelId: payload.hotelId as string };
+  } catch {
+    return null;
+  }
+}
 
 async function triggerPrint(orderId: string, hotelId: string) {
   try {
@@ -55,7 +76,6 @@ async function triggerPrint(orderId: string, hotelId: string) {
       timestamp: new Date(),
     });
 
-    // Fire-and-forget print via API
     const settings = hotel.settings as any;
     if (settings?.printerIp) {
       fetch("http://localhost:3000/api/print", {
@@ -77,8 +97,22 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Try Supabase auth first, then kitchen-session cookie
+  let hotelId: string | null = null;
+
   const roleInfo = await getUserRole();
-  if (!roleInfo || !roleInfo.hotelId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (roleInfo?.hotelId) {
+    hotelId = roleInfo.hotelId;
+  } else {
+    const kitchenSession = await getKitchenSession(req);
+    if (kitchenSession) {
+      hotelId = kitchenSession.hotelId;
+    }
+  }
+
+  if (!hotelId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const body = await req.json();
   const { id: orderId } = await params;
@@ -92,7 +126,7 @@ export async function PATCH(
     .set(updateData)
     .where(and(
       eq(orders.id, orderId),
-      eq(orders.hotelId, roleInfo.hotelId)
+      eq(orders.hotelId, hotelId)
     ))
     .returning();
 
@@ -101,8 +135,8 @@ export async function PATCH(
   }
 
   // Trigger print when order is confirmed (kitchen-approved)
-  if (body.status === "confirmed" && roleInfo.hotelId) {
-    triggerPrint(orderId, roleInfo.hotelId);
+  if (body.status === "confirmed") {
+    triggerPrint(orderId, hotelId);
   }
 
   return NextResponse.json(updatedOrder);

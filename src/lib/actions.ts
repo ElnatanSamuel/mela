@@ -194,6 +194,8 @@ export async function updateHotel(id: string, formData: FormData) {
     const vatNumber = formData.get('vatNumber') as string;
     const vatRate = parseFloat(formData.get('vatRate') as string || "0.15");
     const serviceChargeRate = parseFloat(formData.get('serviceChargeRate') as string || "0.10");
+    const kitchenPin = (formData.get('kitchenPin') as string) || "1234";
+    const clockPin = (formData.get('clockPin') as string) || "1234";
 
     const logoFile = formData.get('logoFile') as File;
     const bannerFile = formData.get('bannerFile') as File;
@@ -225,7 +227,7 @@ export async function updateHotel(id: string, formData: FormData) {
         subscriptionPlan: (formData.get('subscriptionPlan') as string) || 'Standard',
         subscriptionPlanId: planId && planId.trim() !== "" ? planId : null,
         subscriptionExpiresAt: expiresAt && expiresAt.trim() !== "" ? new Date(expiresAt) : null,
-        settings: { vatRate, serviceChargeRate },
+        settings: { vatRate, serviceChargeRate, kitchenPin, clockPin },
         updatedAt: new Date(),
     };
 

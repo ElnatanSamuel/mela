@@ -15,7 +15,13 @@ interface AttendanceRecord {
   durationMinutes: number | null;
 }
 
-export default function StaffClockPanel({ hotelId, role }: { hotelId: string; role: string }) {
+export default function StaffClockPanel({
+  hotelId,
+  role,
+}: {
+  hotelId: string;
+  role: string;
+}) {
   const queryClient = useQueryClient();
   const today = new Date().toISOString().split("T")[0];
   const isManager = role === "owner" || role === "manager";
@@ -30,7 +36,9 @@ export default function StaffClockPanel({ hotelId, role }: { hotelId: string; ro
   const { data: attendance = [], isLoading } = useQuery<AttendanceRecord[]>({
     queryKey: ["staff-attendance", hotelId, today],
     queryFn: () =>
-      fetch(`/api/staff/attendance?hotelId=${hotelId}&date=${today}`).then((r) => r.json()),
+      fetch(`/api/staff/attendance?hotelId=${hotelId}&date=${today}`).then(
+        (r) => r.json(),
+      ),
     refetchInterval: 15000,
   });
 
@@ -48,7 +56,9 @@ export default function StaffClockPanel({ hotelId, role }: { hotelId: string; ro
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["staff-attendance", hotelId, today] });
+      queryClient.invalidateQueries({
+        queryKey: ["staff-attendance", hotelId, today],
+      });
     },
   });
 
@@ -66,7 +76,10 @@ export default function StaffClockPanel({ hotelId, role }: { hotelId: string; ro
   }
 
   const clockInTime = myRecord?.clockIn
-    ? new Date(myRecord.clockIn).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+    ? new Date(myRecord.clockIn).toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
     : null;
 
   return (
@@ -91,7 +104,9 @@ export default function StaffClockPanel({ hotelId, role }: { hotelId: string; ro
         >
           <span
             className={`w-2 h-2 rounded-full ${
-              isClockedIn ? "bg-green-500 animate-pulse" : "bg-muted-foreground/30"
+              isClockedIn
+                ? "bg-green-500 animate-pulse"
+                : "bg-muted-foreground/30"
             }`}
           />
           {isClockedIn ? "On Duty" : "Off Duty"}
@@ -135,7 +150,9 @@ export default function StaffClockPanel({ hotelId, role }: { hotelId: string; ro
 
       {isManager && (
         <div className="w-full py-3 bg-muted border border-border rounded-[4px] text-center">
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Manager — no clock in required</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            Manager — no clock in required
+          </p>
         </div>
       )}
 
@@ -150,7 +167,10 @@ export default function StaffClockPanel({ hotelId, role }: { hotelId: string; ro
         {isLoading ? (
           <div className="space-y-2">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-10 bg-muted animate-pulse rounded-[4px]" />
+              <div
+                key={i}
+                className="h-10 bg-muted animate-pulse rounded-[4px]"
+              />
             ))}
           </div>
         ) : attendance.length === 0 ? (
@@ -166,7 +186,9 @@ export default function StaffClockPanel({ hotelId, role }: { hotelId: string; ro
               <div
                 key={record.id}
                 className={`flex items-center justify-between py-2 px-3 rounded-[4px] ${
-                  record.userId === currentUserId ? "bg-primary/10 border border-primary/20" : "bg-muted"
+                  record.userId === currentUserId
+                    ? "bg-primary/10 border border-primary/20"
+                    : "bg-muted"
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -179,7 +201,9 @@ export default function StaffClockPanel({ hotelId, role }: { hotelId: string; ro
                     <p className="text-[10px] font-bold text-foreground uppercase tracking-tight">
                       {record.role || "Staff"}
                       {record.userId === currentUserId && (
-                        <span className="ml-1 text-[8px] text-primary">(you)</span>
+                        <span className="ml-1 text-[8px] text-primary">
+                          (you)
+                        </span>
                       )}
                     </p>
                     <p className="text-[8px] text-muted-foreground font-medium">

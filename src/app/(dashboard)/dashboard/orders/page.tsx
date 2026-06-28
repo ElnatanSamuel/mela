@@ -7,5 +7,5 @@ export default async function OrdersPage() {
   const roleInfo = await getUserRole();
   if (!roleInfo || !roleInfo.hotelId) redirect("/auth/login");
 
-  return <OrdersContent hotelId={roleInfo.hotelId} />;
+  return <OrdersContent hotelId={roleInfo.hotelId} role={roleInfo.role} />;
 }

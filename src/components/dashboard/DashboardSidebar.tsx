@@ -43,7 +43,7 @@ export default function DashboardSidebar({ role, email }: DashboardSidebarProps)
   const navigation = [
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, show: isAdmin },
     { name: "Orders", href: "/dashboard/orders", icon: ClipboardList, show: true, badge: "orders" },
-    { name: "Kitchen", href: "/dashboard/kitchen", icon: ChefHat, show: true },
+    { name: "Kitchen", href: "/dashboard/kitchen", icon: ChefHat, show: isAdmin },
     { name: "Menu", href: "/dashboard/menu", icon: UtensilsCrossed, show: true },
     { name: "Tables", href: "/dashboard/tables", icon: QrCode, show: isAdmin },
     { name: "Inventory", href: "/dashboard/inventory", icon: Package, show: isAdmin },

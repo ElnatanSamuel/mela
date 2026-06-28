@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import {
   Bell,
-  FileText,
   Loader2,
   CheckCircle2,
   Phone,
@@ -16,9 +15,10 @@ import { motion, AnimatePresence } from "framer-motion";
 interface ServiceRequestButtonProps {
   hotelId: string;
   tableId: string;
+  hasFloatingCart?: boolean;
 }
 
-export function ServiceRequestButton({ hotelId, tableId }: ServiceRequestButtonProps) {
+export function ServiceRequestButton({ hotelId, tableId, hasFloatingCart }: ServiceRequestButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [calling, setCalling] = useState(false);
   const [callSent, setCallSent] = useState(false);
@@ -28,22 +28,24 @@ export function ServiceRequestButton({ hotelId, tableId }: ServiceRequestButtonP
   const sendRequest = async (type: "call_waiter" | "request_bill" | "need_help") => {
     if (type === "call_waiter") setCalling(true);
     try {
-      await fetch("/api/service-requests", {
+      const res = await fetch("/api/service-requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ hotelId, tableId, type }),
       });
-      if (type === "call_waiter") {
-        setCallSent(true);
-        setTimeout(() => setCallSent(false), 30000);
-      } else if (type === "request_bill") {
-        setBillSent(true);
-        setTimeout(() => setBillSent(false), 30000);
-      } else {
-        setHelpSent(true);
-        setTimeout(() => setHelpSent(false), 30000);
+      if (res.ok) {
+        if (type === "call_waiter") {
+          setCallSent(true);
+          setTimeout(() => setCallSent(false), 30000);
+        } else if (type === "request_bill") {
+          setBillSent(true);
+          setTimeout(() => setBillSent(false), 30000);
+        } else {
+          setHelpSent(true);
+          setTimeout(() => setHelpSent(false), 30000);
+        }
+        setIsOpen(false);
       }
-      setIsOpen(false);
     } catch {
       // silent
     } finally {
@@ -51,8 +53,10 @@ export function ServiceRequestButton({ hotelId, tableId }: ServiceRequestButtonP
     }
   };
 
+  const bottomOffset = hasFloatingCart ? "bottom-28" : "bottom-6";
+
   return (
-    <div className="fixed bottom-6 inset-x-6 z-50 flex flex-col items-center gap-3">
+    <div className={`fixed ${bottomOffset} inset-x-4 z-50 flex flex-col items-center gap-3 transition-all duration-300`}>
       {/* Status toasts */}
       <AnimatePresence>
         {callSent && (

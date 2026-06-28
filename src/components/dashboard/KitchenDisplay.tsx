@@ -135,11 +135,18 @@ export default function KitchenDisplay({ hotelId }: { hotelId: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
-      if (!res.ok) throw new Error("Failed");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed" }));
+        throw new Error(err.error || "Failed to update order");
+      }
       return res.json();
     },
     onSuccess: (updated) => {
       setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+    },
+    onError: (error) => {
+      console.error("Kitchen status update failed:", error.message);
+      alert(`Update failed: ${error.message}`);
     },
   });
 

@@ -192,7 +192,51 @@ export default async function ManagerSettingsPage() {
 
       <SettingsToggles hotelId={hotel.id} settings={settings} />
 
-      <ClockLinkManager hotelSlug={hotel.slug || hotel.name.toLowerCase().replace(/\s+/g, "-")} hotelName={hotel.name} />
+      {/* Access PINs */}
+      <form action={updateHotel.bind(null, hotel.id)} className="bg-card border border-border rounded-[12px] p-8 shadow-sm dark:shadow-black/10 space-y-6">
+        <div className="flex items-center gap-3">
+          <ShieldCheck className="w-4 h-4 text-orange-500" />
+          <h3 className="text-xs font-black text-foreground uppercase tracking-widest">Access PINs</h3>
+        </div>
+        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+          Set separate PINs for clock in and kitchen display access.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Clock In PIN</label>
+            <input
+              name="clockPin"
+              type="text"
+              maxLength={6}
+              defaultValue={settings.clockPin || "1234"}
+              className="w-full p-4 border border-border rounded-[4px] text-xs font-bold tracking-[0.5em] font-mono focus:outline-none focus:border-foreground text-foreground bg-card"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Kitchen Display PIN</label>
+            <input
+              name="kitchenPin"
+              type="text"
+              maxLength={6}
+              defaultValue={settings.kitchenPin || "1234"}
+              className="w-full p-4 border border-border rounded-[4px] text-xs font-bold tracking-[0.5em] font-mono focus:outline-none focus:border-foreground text-foreground bg-card"
+            />
+          </div>
+        </div>
+        <input type="hidden" name="vatRate" value={settings.vatRate} />
+        <input type="hidden" name="serviceChargeRate" value={settings.serviceChargeRate} />
+        <input type="hidden" name="subscriptionPlan" value={hotel.subscriptionPlan} />
+        <input type="hidden" name="subscriptionPlanId" value={hotel.subscriptionPlanId || ""} />
+        <input type="hidden" name="subscriptionExpiresAt" value={hotel.subscriptionExpiresAt?.toISOString() || ""} />
+        <div className="flex justify-end">
+          <SubmitButton loadingText="Saving...">
+            <Save className="w-4 h-4" />
+            Save PINs
+          </SubmitButton>
+        </div>
+      </form>
+
+      <ClockLinkManager hotelSlug={hotel.slug || hotel.name.toLowerCase().replace(/\s+/g, "-")} hotelName={hotel.name} clockToken={hotel.clockToken} kitchenToken={hotel.kitchenToken} />
 
       <ReceiptSettings />
 

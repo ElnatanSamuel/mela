@@ -28,10 +28,8 @@ export async function POST(req: Request) {
       tx_ref: txRef,
       callback_url: callbackUrl,
       return_url: returnUrl,
-      customization: {
-        title: hotelName || "Mela Order",
-        description: "Payment for your order",
-      },
+      "customization[title]": hotelName || "Mela Order",
+      "customization[description]": "Payment for your order",
     };
 
     const res = await fetch(CHAPA_API, {

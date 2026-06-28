@@ -32,6 +32,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
+    // Skip if already paid
+    if (order.paymentStatus === "paid") {
+      return NextResponse.json({ success: true, message: "Already confirmed" });
+    }
+
     // Update order payment status
     await db
       .update(orders)

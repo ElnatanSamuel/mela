@@ -12,7 +12,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "hotelId, tableId, and type are required" }, { status: 400 });
     }
 
-    if (!["call_waiter", "request_bill"].includes(type)) {
+    if (!["call_waiter", "request_bill", "need_help"].includes(type)) {
       return NextResponse.json({ error: "Invalid type" }, { status: 400 });
     }
 
