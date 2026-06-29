@@ -31,7 +31,12 @@ import { motion, AnimatePresence } from "framer-motion";
 interface PromoCodeResult {
   valid: boolean;
   discount?: number;
-  promoCode?: { id: string; code: string; discountType: string; discountValue: string };
+  promoCode?: {
+    id: string;
+    code: string;
+    discountType: string;
+    discountValue: string;
+  };
   error?: string;
 }
 
@@ -93,7 +98,14 @@ interface Combo {
   savings: number;
 }
 
-export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatRate = 0.15, serviceChargeRate = 0.10 }: GuestMenuProps) {
+export default function GuestMenu({
+  hotelId,
+  tableId,
+  hotelName,
+  hotelSlug,
+  vatRate = 0.15,
+  serviceChargeRate = 0.1,
+}: GuestMenuProps) {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [cart, setCart] = useState<Record<string, CartEntry>>({});
@@ -103,7 +115,9 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
   const [modifierItem, setModifierItem] = useState<MenuItem | null>(null);
   const [detailItem, setDetailItem] = useState<MenuItem | null>(null);
   const [promoCodeInput, setPromoCodeInput] = useState("");
-  const [appliedPromo, setAppliedPromo] = useState<PromoCodeResult | null>(null);
+  const [appliedPromo, setAppliedPromo] = useState<PromoCodeResult | null>(
+    null,
+  );
   const [promoError, setPromoError] = useState("");
   const [isPromoValidating, setIsPromoValidating] = useState(false);
   const [selectedTip, setSelectedTip] = useState<number>(0);
@@ -112,10 +126,17 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
   const [showComplaintModal, setShowComplaintModal] = useState(false);
   const { addToast } = useToastStore();
   const [complaintMessage, setComplaintMessage] = useState("");
-  const [currentOrderTotal, setCurrentOrderTotal] = useState<string | null>(null);
-  const [currentOrderPaymentType, setCurrentOrderPaymentType] = useState<string | null>(null);
+  const [currentOrderTotal, setCurrentOrderTotal] = useState<string | null>(
+    null,
+  );
+  const [currentOrderPaymentType, setCurrentOrderPaymentType] = useState<
+    string | null
+  >(null);
   const [showReceipt, setShowReceipt] = useState(false);
-  const [currentPaymentStatus, setCurrentPaymentStatus] = useState<string | null>(null);
+  const [currentPaymentStatus, setCurrentPaymentStatus] = useState<
+    string | null
+  >(null);
+  const [showPaymentSheet, setShowPaymentSheet] = useState(false);
 
   const fasting = useMemo(() => getFastingState(), []);
 
@@ -147,34 +168,54 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
     for (const item of combo.items) {
       setCart((prev) => {
         const current = prev[item.menuItemId]?.qty || 0;
-        return { ...prev, [item.menuItemId]: { qty: current + item.quantity, modifiers: [] } };
+        return {
+          ...prev,
+          [item.menuItemId]: { qty: current + item.quantity, modifiers: [] },
+        };
       });
     }
   };
 
   const [liveItems, setLiveItems] = useState<MenuItem[]>(menuItems);
 
-  useEffect(() => { setLiveItems(menuItems); }, [menuItems]);
+  useEffect(() => {
+    setLiveItems(menuItems);
+  }, [menuItems]);
 
   useEffect(() => {
     const channel = supabase
       .channel(`menu-items-${hotelId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "menu_items", filter: `hotel_id=eq.${hotelId}` }, (payload) => {
-        if (payload.eventType === "UPDATE") {
-          const updated = payload.new as MenuItem;
-          setLiveItems((prev) => prev.map((item) => (item.id === updated.id ? { ...item, ...updated } : item)));
-        }
-      })
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "menu_items",
+          filter: `hotel_id=eq.${hotelId}`,
+        },
+        (payload) => {
+          if (payload.eventType === "UPDATE") {
+            const updated = payload.new as MenuItem;
+            setLiveItems((prev) =>
+              prev.map((item) =>
+                item.id === updated.id ? { ...item, ...updated } : item,
+              ),
+            );
+          }
+        },
+      )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [hotelId]);
 
   useEffect(() => {
     if (!activeOrderId) return;
     // Fetch initial order data
     fetch(`/api/guest/orders/${activeOrderId}`)
-      .then(r => r.json())
-      .then(d => {
+      .then((r) => r.json())
+      .then((d) => {
         setOrderStatus(d.order?.status || "pending");
         setCurrentPaymentStatus(d.order?.paymentStatus || null);
         setCurrentOrderTotal(d.order?.totalAmount || null);
@@ -183,19 +224,34 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
       .catch(() => {});
     const channel = supabase
       .channel(`order-${activeOrderId}`)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${activeOrderId}` }, (payload) => {
-        const newStatus = payload.new.status;
-        const newPaymentStatus = payload.new.paymentStatus;
-        setOrderStatus(newStatus);
-        if (newPaymentStatus) setCurrentPaymentStatus(newPaymentStatus);
-      })
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "orders",
+          filter: `id=eq.${activeOrderId}`,
+        },
+        (payload) => {
+          const newStatus = payload.new.status;
+          const newPaymentStatus = payload.new.paymentStatus;
+          setOrderStatus(newStatus);
+          if (newPaymentStatus) setCurrentPaymentStatus(newPaymentStatus);
+        },
+      )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [activeOrderId]);
 
   // Auto-show receipt when cash order is served
   useEffect(() => {
-    if (activeOrderId && orderStatus === "served" && currentOrderPaymentType === "cash") {
+    if (
+      activeOrderId &&
+      orderStatus === "served" &&
+      currentOrderPaymentType === "cash"
+    ) {
       setShowReceipt(true);
     }
   }, [orderStatus, activeOrderId, currentOrderPaymentType]);
@@ -216,7 +272,10 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          hotelId, tableId, cartItems: cart, orderType: paymentMethod,
+          hotelId,
+          tableId,
+          cartItems: cart,
+          orderType: paymentMethod,
           promoCodeId: appliedPromo?.promoCode?.id || null,
           discountAmount: appliedPromo?.discount?.toFixed(2) || "0",
           tipAmount: (selectedTip > 0 ? selectedTip : 0).toFixed(2),
@@ -224,7 +283,9 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
         }),
       });
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({ error: "Failed to place order" }));
+        const errData = await res
+          .json()
+          .catch(() => ({ error: "Failed to place order" }));
         throw new Error(errData.error || "Failed to place order");
       }
       return res.json();
@@ -240,18 +301,39 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
           const chapaRes = await fetch("/api/pay/chapa", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ amount: parseFloat(data.totalAmount), txRef, firstName: "Guest", hotelName, orderId: data.id }),
+            body: JSON.stringify({
+              amount: parseFloat(data.totalAmount),
+              txRef,
+              firstName: "Guest",
+              hotelName,
+              orderId: data.id,
+            }),
           });
           const chapaData = await chapaRes.json();
           if (chapaData.checkoutUrl) {
-            sessionStorage.setItem("mela-pending-order", JSON.stringify({ orderId: data.id, txRef, hotelId, tableId, hotelSlug }));
+            sessionStorage.setItem(
+              "mela-pending-order",
+              JSON.stringify({
+                orderId: data.id,
+                txRef,
+                hotelId,
+                tableId,
+                hotelSlug,
+              }),
+            );
             window.location.href = chapaData.checkoutUrl;
             return;
           }
-          addToast(chapaData.error || "Payment gateway error. You can pay with cash.", "error");
+          addToast(
+            chapaData.error || "Payment gateway error. You can pay with cash.",
+            "error",
+          );
         } catch (err: any) {
           console.error("Chapa init failed:", err);
-          addToast("Payment gateway unavailable. You can pay with cash.", "error");
+          addToast(
+            "Payment gateway unavailable. You can pay with cash.",
+            "error",
+          );
         }
       }
       setActiveOrderId(data.id);
@@ -270,7 +352,10 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
     },
     onError: (error) => {
       console.error("Place order failed:", error);
-      addToast(error.message || "Failed to place order. Please try again.", "error");
+      addToast(
+        error.message || "Failed to place order. Please try again.",
+        "error",
+      );
     },
   });
 
@@ -279,39 +364,70 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
       const res = await fetch("/api/complaints", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, tableId, orderId: activeOrderId, hotelId }),
+        body: JSON.stringify({
+          message,
+          tableId,
+          orderId: activeOrderId,
+          hotelId,
+        }),
       });
       if (!res.ok) throw new Error("Failed to submit complaint");
       return res.json();
     },
-    onSuccess: () => { setShowComplaintModal(false); setComplaintMessage(""); },
+    onSuccess: () => {
+      setShowComplaintModal(false);
+      setComplaintMessage("");
+    },
   });
 
   const payNowMutation = useMutation({
     mutationFn: async () => {
-      if (!activeOrderId || !currentOrderTotal) throw new Error("No order to pay");
+      if (!activeOrderId || !currentOrderTotal)
+        throw new Error("No order to pay");
       const shortId = activeOrderId.slice(0, 8);
       const shortTs = Date.now().toString().slice(-8);
       const txRef = `mel-${shortId}-${shortTs}`;
       const chapaRes = await fetch("/api/pay/chapa", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: parseFloat(currentOrderTotal), txRef, firstName: "Guest", hotelName, orderId: activeOrderId }),
+        body: JSON.stringify({
+          amount: parseFloat(currentOrderTotal),
+          txRef,
+          firstName: "Guest",
+          hotelName,
+          orderId: activeOrderId,
+        }),
       });
       const chapaData = await chapaRes.json();
-      if (!chapaData.checkoutUrl) throw new Error(chapaData.error || "Chapa init failed");
-      sessionStorage.setItem("mela-pending-order", JSON.stringify({ orderId: activeOrderId, txRef, hotelId, tableId, hotelSlug }));
+      if (!chapaData.checkoutUrl)
+        throw new Error(chapaData.error || "Chapa init failed");
+      sessionStorage.setItem(
+        "mela-pending-order",
+        JSON.stringify({
+          orderId: activeOrderId,
+          txRef,
+          hotelId,
+          tableId,
+          hotelSlug,
+        }),
+      );
       window.location.href = chapaData.checkoutUrl;
     },
     onError: (error) => {
       console.error("Pay now failed:", error);
-      addToast(error.message || "Payment failed. Try again or pay at counter.", "error");
+      addToast(
+        error.message || "Payment failed. Try again or pay at counter.",
+        "error",
+      );
     },
   });
 
   const handleAddItem = (item: MenuItem) => {
     if (!item.isAvailable) return;
-    if (item.hasModifiers) { setModifierItem(item); return; }
+    if (item.hasModifiers) {
+      setModifierItem(item);
+      return;
+    }
     setCart((prev) => {
       const current = prev[item.id]?.qty || 0;
       return { ...prev, [item.id]: { qty: current + 1, modifiers: [] } };
@@ -320,10 +436,17 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
 
   const handleModifierConfirm = (selected: any[], addon: number) => {
     if (!modifierItem) return;
-    const mapped = selected.map((m: any) => ({ id: m.id, name: m.name, priceDelta: parseFloat(m.priceModifier || "0") }));
+    const mapped = selected.map((m: any) => ({
+      id: m.id,
+      name: m.name,
+      priceDelta: parseFloat(m.priceModifier || "0"),
+    }));
     setCart((prev) => {
       const current = prev[modifierItem.id]?.qty || 0;
-      return { ...prev, [modifierItem.id]: { qty: current + 1, modifiers: mapped } };
+      return {
+        ...prev,
+        [modifierItem.id]: { qty: current + 1, modifiers: mapped },
+      };
     });
     setModifierItem(null);
   };
@@ -332,7 +455,10 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
     setCart((prev) => {
       const current = prev[id]?.qty || 0;
       const next = Math.max(0, current + delta);
-      if (next === 0) { const { [id]: _, ...rest } = prev; return rest; }
+      if (next === 0) {
+        const { [id]: _, ...rest } = prev;
+        return rest;
+      }
       return { ...prev, [id]: { ...prev[id], qty: next } };
     });
   };
@@ -342,14 +468,18 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
   const cartSubtotal = Object.entries(cart).reduce((total, [id, entry]) => {
     const item = liveItems.find((m) => m.id === id);
     const base = parseFloat(item?.price || "0") * entry.qty;
-    const modifiers = entry.modifiers.reduce((s, m) => s + m.priceDelta, 0) * entry.qty;
+    const modifiers =
+      entry.modifiers.reduce((s, m) => s + m.priceDelta, 0) * entry.qty;
     return total + base + modifiers;
   }, 0);
 
   const discountAmount = appliedPromo?.discount || 0;
   const vatAmount = cartSubtotal * vatRate;
   const serviceAmount = cartSubtotal * serviceChargeRate;
-  const cartTotal = Math.max(0, cartSubtotal + vatAmount + serviceAmount - discountAmount + selectedTip);
+  const cartTotal = Math.max(
+    0,
+    cartSubtotal + vatAmount + serviceAmount - discountAmount + selectedTip,
+  );
 
   const sortedItems = useMemo(() => {
     if (!fasting.isFastingDay) return liveItems;
@@ -360,12 +490,22 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
     });
   }, [liveItems, fasting.isFastingDay]);
 
-  const filteredItems = sortedItems.filter(
-    (item) => item.name.toLowerCase().includes(search.toLowerCase()) || (item.nameAm && item.nameAm.toLowerCase().includes(search.toLowerCase())),
-  ).filter((item) => activeCategory === "all" || item.categoryId === activeCategory);
+  const filteredItems = sortedItems
+    .filter(
+      (item) =>
+        item.name.toLowerCase().includes(search.toLowerCase()) ||
+        (item.nameAm &&
+          item.nameAm.toLowerCase().includes(search.toLowerCase())),
+    )
+    .filter(
+      (item) => activeCategory === "all" || item.categoryId === activeCategory,
+    );
 
   const groupedItems = categories
-    .map((cat) => ({ ...cat, items: filteredItems.filter((item) => item.categoryId === cat.id) }))
+    .map((cat) => ({
+      ...cat,
+      items: filteredItems.filter((item) => item.categoryId === cat.id),
+    }))
     .filter((group) => group.items.length > 0 || activeCategory === group.id);
 
   // --- Receipt View ---
@@ -382,8 +522,16 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
   if (activeOrderId) {
     const steps = [
       { id: "pending", label: "Order Placed", sub: "We received your order" },
-      { id: "confirmed", label: "Accepted", sub: "Kitchen confirmed your order" },
-      { id: "preparing", label: "Being Prepared", sub: "The kitchen is cooking" },
+      {
+        id: "confirmed",
+        label: "Accepted",
+        sub: "Kitchen confirmed your order",
+      },
+      {
+        id: "preparing",
+        label: "Being Prepared",
+        sub: "The kitchen is cooking",
+      },
       { id: "served", label: "Ready", sub: "Enjoy your meal" },
     ];
     const statusOrder = ["pending", "confirmed", "preparing", "served"];
@@ -402,41 +550,81 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
           </button>
 
           <div className="text-center">
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-20 h-20 bg-stone-900 rounded-3xl flex items-center justify-center mx-auto mb-6">
-              <CheckCircle2 className="w-10 h-10 text-white" />
-            </motion.div>
-
             <h2 className="text-2xl font-black text-stone-900 uppercase tracking-tight mb-2">
-              {orderStatus === "served" ? "Order Ready!" : orderStatus === "cancelled" ? "Order Cancelled" : "Order Placed"}
+              {orderStatus === "served"
+                ? "Order Ready!"
+                : orderStatus === "cancelled"
+                  ? "Order Cancelled"
+                  : "Order Placed"}
             </h2>
             <p className="text-sm text-stone-400 mb-10">
               {orderStatus === "served"
                 ? "Your food is ready to enjoy"
                 : orderStatus === "cancelled"
-                ? "This order has been cancelled"
-                : "Sit tight, we're working on it"}
+                  ? "This order has been cancelled"
+                  : "Sit tight, we're working on it"}
             </p>
           </div>
 
           {orderStatus !== "cancelled" && (
             <div className="space-y-0 mb-10">
               {steps.map((step, idx) => {
-                const isCompleted = idx < normalizedIdx || orderStatus === "served";
+                const isCompleted =
+                  idx < normalizedIdx || orderStatus === "served";
                 const isActive = idx === normalizedIdx;
                 return (
-                  <div key={step.id} className="flex items-start gap-4 relative">
+                  <div
+                    key={step.id}
+                    className="flex items-start gap-4 relative"
+                  >
                     {idx < steps.length - 1 && (
                       <div className="absolute left-[15px] top-8 w-[2px] h-8">
-                        <div className={cn("w-full h-full transition-colors duration-500", isCompleted ? "bg-stone-900" : "bg-stone-200")} />
+                        <div
+                          className={cn(
+                            "w-full h-full transition-colors duration-500",
+                            isCompleted ? "bg-stone-900" : "bg-stone-200",
+                          )}
+                        />
                       </div>
                     )}
-                    <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-500 z-10", isCompleted ? "bg-stone-900" : isActive ? "bg-stone-900 ring-4 ring-stone-100" : "bg-stone-200")}>
-                      {isCompleted && <CheckCircle2 className="w-4 h-4 text-white" />}
-                      {isActive && !isCompleted && <div className="w-2 h-2 bg-white rounded-full animate-pulse" />}
+                    <div
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-500 z-10",
+                        isCompleted
+                          ? "bg-stone-900"
+                          : isActive
+                            ? "bg-stone-900 ring-4 ring-stone-100"
+                            : "bg-stone-200",
+                      )}
+                    >
+                      {isCompleted && (
+                        <CheckCircle2 className="w-4 h-4 text-white" />
+                      )}
+                      {isActive && !isCompleted && (
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                      )}
                     </div>
                     <div className="pb-8 pt-1">
-                      <p className={cn("text-sm font-bold transition-colors", isCompleted || isActive ? "text-stone-900" : "text-stone-300")}>{step.label}</p>
-                      <p className={cn("text-xs transition-colors", isCompleted || isActive ? "text-stone-400" : "text-stone-200")}>{step.sub}</p>
+                      <p
+                        className={cn(
+                          "text-sm font-bold transition-colors",
+                          isCompleted || isActive
+                            ? "text-stone-900"
+                            : "text-stone-300",
+                        )}
+                      >
+                        {step.label}
+                      </p>
+                      <p
+                        className={cn(
+                          "text-xs transition-colors",
+                          isCompleted || isActive
+                            ? "text-stone-400"
+                            : "text-stone-200",
+                        )}
+                      >
+                        {step.sub}
+                      </p>
                     </div>
                   </div>
                 );
@@ -447,50 +635,129 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
           <div className="space-y-3">
             {orderStatus === "served" && (
               <>
-                {currentOrderPaymentType === "cash" ? (
-                  <button onClick={() => setShowReceipt(true)} className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-2 shadow-lg">
-                    <Receipt className="w-4 h-4" />
-                    Pay at Counter
-                  </button>
-                ) : (
-                  <button onClick={() => setShowReceipt(true)} className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-2 shadow-lg">
-                    <Receipt className="w-4 h-4" />
-                    View Receipt
-                  </button>
-                )}
-                {currentPaymentStatus !== "paid" && (
-                  <button onClick={() => payNowMutation.mutate()} disabled={payNowMutation.isPending} className="w-full bg-stone-100 text-stone-900 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-50">
-                    {payNowMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Pay with Chapa"}
-                  </button>
-                )}
+                <button
+                  onClick={() => currentPaymentStatus === "paid" ? setShowReceipt(true) : setShowPaymentSheet(true)}
+                  className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-2 shadow-lg"
+                >
+                  <Receipt className="w-4 h-4" />
+                  {currentPaymentStatus === "paid" ? "View Receipt" : "Pay Now"}
+                </button>
               </>
             )}
 
-            <button onClick={() => setActiveOrderId(null)} className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform">
+            <button
+              onClick={() => setActiveOrderId(null)}
+              className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform"
+            >
               {orderStatus === "served" ? "Order Again" : "Back to Menu"}
             </button>
 
-            <button onClick={() => setShowComplaintModal(true)} className="w-full text-stone-400 py-3 text-xs font-bold uppercase tracking-widest">
+            <button
+              onClick={() => setShowComplaintModal(true)}
+              className="w-full text-stone-400 py-3 text-xs font-bold uppercase tracking-widest"
+            >
               Report an Issue
             </button>
           </div>
 
           {showComplaintModal && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowComplaintModal(false)}>
-              <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
-                <h3 className="text-lg font-black uppercase tracking-tight text-stone-900 mb-4">What went wrong?</h3>
-                <textarea value={complaintMessage} onChange={(e) => setComplaintMessage(e.target.value)} placeholder="Tell us about your experience..." className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-stone-400 resize-none h-28" autoFocus />
+            <div
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              onClick={() => setShowComplaintModal(false)}
+            >
+              <div
+                className="bg-white rounded-3xl w-full max-w-md p-6 shadow-xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h3 className="text-lg font-black uppercase tracking-tight text-stone-900 mb-4">
+                  What went wrong?
+                </h3>
+                <textarea
+                  value={complaintMessage}
+                  onChange={(e) => setComplaintMessage(e.target.value)}
+                  placeholder="Tell us about your experience..."
+                  className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-stone-400 resize-none h-28"
+                  autoFocus
+                />
                 <div className="flex gap-3 mt-4">
-                  <button onClick={() => { if (complaintMessage.trim()) complaintMutation.mutate(complaintMessage); }} disabled={!complaintMessage.trim() || complaintMutation.isPending} className="flex-1 py-3 bg-red-500 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all disabled:opacity-50">
-                    {complaintMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Submit"}
+                  <button
+                    onClick={() => {
+                      if (complaintMessage.trim())
+                        complaintMutation.mutate(complaintMessage);
+                    }}
+                    disabled={
+                      !complaintMessage.trim() || complaintMutation.isPending
+                    }
+                    className="flex-1 py-3 bg-red-500 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-red-600 transition-all disabled:opacity-50"
+                  >
+                    {complaintMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                    ) : (
+                      "Submit"
+                    )}
                   </button>
-                  <button onClick={() => { setShowComplaintModal(false); setComplaintMessage(""); }} className="flex-1 py-3 border border-stone-200 text-stone-400 text-xs font-bold uppercase tracking-widest rounded-xl">
+                  <button
+                    onClick={() => {
+                      setShowComplaintModal(false);
+                      setComplaintMessage("");
+                    }}
+                    className="flex-1 py-3 border border-stone-200 text-stone-400 text-xs font-bold uppercase tracking-widest rounded-xl"
+                  >
                     Cancel
                   </button>
                 </div>
               </div>
             </div>
           )}
+
+          {/* Payment Bottom Sheet */}
+          <AnimatePresence>
+            {showPaymentSheet && (
+              <div className="fixed inset-0 z-[100]" onClick={() => setShowPaymentSheet(false)}>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+                <motion.div
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl"
+                >
+                  <div className="flex justify-center pt-3 pb-2">
+                    <div className="w-10 h-1 bg-stone-200 rounded-full" />
+                  </div>
+                  <div className="px-6 pb-8 space-y-3">
+                    <h3 className="text-lg font-black text-stone-900 uppercase tracking-tight text-center mb-6">
+                      Choose Payment
+                    </h3>
+                    <button
+                      onClick={() => { setShowPaymentSheet(false); payNowMutation.mutate(); }}
+                      disabled={payNowMutation.isPending}
+                      className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-3 disabled:opacity-50 shadow-lg"
+                    >
+                      {payNowMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>Pay with Chapa — {currentOrderTotal ? formatCurrency(currentOrderTotal) : ""}</>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => { setShowPaymentSheet(false); setShowReceipt(true); }}
+                      className="w-full border-2 border-stone-200 text-stone-500 py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform"
+                    >
+                      Pay at Counter
+                    </button>
+                    <button
+                      onClick={() => setShowPaymentSheet(false)}
+                      className="w-full text-stone-400 py-2 text-[10px] font-bold uppercase tracking-widest"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     );
@@ -501,7 +768,10 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
     return (
       <div className="px-4 py-8 space-y-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-32 bg-stone-100 rounded-2xl animate-pulse" />
+          <div
+            key={i}
+            className="h-32 bg-stone-100 rounded-2xl animate-pulse"
+          />
         ))}
       </div>
     );
@@ -523,7 +793,10 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
       </div>
 
       {/* Category Pills */}
-      <div className="flex gap-2 overflow-x-auto pb-1 mb-6" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <div
+        className="flex gap-2 overflow-x-auto pb-1 mb-6"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
         <div className="flex gap-2 shrink-0">
           <button
             onClick={() => setActiveCategory("all")}
@@ -531,7 +804,7 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
               "px-5 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap",
               activeCategory === "all"
                 ? "bg-stone-900 text-white shadow-lg shadow-stone-900/20"
-                : "bg-white text-stone-400 border border-stone-200 active:bg-stone-100"
+                : "bg-white text-stone-400 border border-stone-200 active:bg-stone-100",
             )}
           >
             All
@@ -544,7 +817,7 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
                 "px-5 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap",
                 activeCategory === cat.id
                   ? "bg-stone-900 text-white shadow-lg shadow-stone-900/20"
-                  : "bg-white text-stone-400 border border-stone-200 active:bg-stone-100"
+                  : "bg-white text-stone-400 border border-stone-200 active:bg-stone-100",
               )}
             >
               {cat.name}
@@ -568,13 +841,20 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-4 h-4 text-amber-500" />
-            <h2 className="text-lg font-black text-stone-900 uppercase tracking-tight">Meal Deals</h2>
+            <h2 className="text-lg font-black text-stone-900 uppercase tracking-tight">
+              Meal Deals
+            </h2>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
             {combos.map((combo) => (
-              <div key={combo.id} className="min-w-[240px] bg-stone-900 text-white rounded-2xl p-5 flex-shrink-0">
+              <div
+                key={combo.id}
+                className="min-w-[240px] bg-stone-900 text-white rounded-2xl p-5 flex-shrink-0"
+              >
                 <div className="flex items-start justify-between mb-3">
-                  <h3 className="text-sm font-black uppercase tracking-tight">{combo.name}</h3>
+                  <h3 className="text-sm font-black uppercase tracking-tight">
+                    {combo.name}
+                  </h3>
                   {combo.savings > 0 && (
                     <span className="bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full text-[9px] font-black uppercase">
                       Save {formatCurrency(combo.savings.toString())}
@@ -583,12 +863,19 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
                 </div>
                 <div className="space-y-1 mb-4 text-white/60 text-xs">
                   {combo.items.map((item, idx) => (
-                    <div key={idx}>{item.quantity}x {item.name}</div>
+                    <div key={idx}>
+                      {item.quantity}x {item.name}
+                    </div>
                   ))}
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-black">{formatCurrency(combo.totalPrice)}</span>
-                  <button onClick={() => handleAddCombo(combo)} className="bg-white text-stone-900 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-transform">
+                  <span className="text-lg font-black">
+                    {formatCurrency(combo.totalPrice)}
+                  </span>
+                  <button
+                    onClick={() => handleAddCombo(combo)}
+                    className="bg-white text-stone-900 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-transform"
+                  >
                     Add
                   </button>
                 </div>
@@ -618,13 +905,19 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
                     onClick={() => !isUnavailable && setDetailItem(item)}
                     className={cn(
                       "bg-white rounded-2xl border border-stone-100 p-4 flex gap-4 transition-all shadow-sm",
-                      isUnavailable ? "opacity-40" : "active:scale-[0.98] cursor-pointer"
+                      isUnavailable
+                        ? "opacity-40"
+                        : "active:scale-[0.98] cursor-pointer",
                     )}
                   >
                     {/* Image */}
                     <div className="w-28 h-28 bg-stone-100 rounded-xl overflow-hidden shrink-0 relative">
                       {item.imageUrl ? (
-                        <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <Utensils className="w-6 h-6 text-stone-200" />
@@ -641,16 +934,22 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
                     <div className="flex-1 flex flex-col justify-between min-w-0">
                       <div>
                         <div className="flex items-start justify-between gap-2">
-                          <h3 className="font-bold text-stone-900 text-sm leading-tight">{item.name}</h3>
+                          <h3 className="font-bold text-stone-900 text-sm leading-tight">
+                            {item.name}
+                          </h3>
                           <span className="font-black text-stone-900 text-sm whitespace-nowrap">
                             {formatCurrency(item.price)}
                           </span>
                         </div>
                         {item.nameAm && (
-                          <p className="text-[11px] text-stone-300 mt-0.5">{item.nameAm}</p>
+                          <p className="text-[11px] text-stone-300 mt-0.5">
+                            {item.nameAm}
+                          </p>
                         )}
                         {item.description && (
-                          <p className="text-xs text-stone-400 mt-1.5 line-clamp-2 leading-relaxed">{item.description}</p>
+                          <p className="text-xs text-stone-400 mt-1.5 line-clamp-2 leading-relaxed">
+                            {item.description}
+                          </p>
                         )}
                         <div className="flex items-center gap-2 mt-2">
                           {item.isVegetarian && (
@@ -665,7 +964,8 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
                           )}
                           {item.estimatedPrepTime && (
                             <span className="inline-flex items-center gap-1 text-[9px] font-bold text-stone-400">
-                              <Clock className="w-2.5 h-2.5" /> {item.estimatedPrepTime}m
+                              <Clock className="w-2.5 h-2.5" />{" "}
+                              {item.estimatedPrepTime}m
                             </span>
                           )}
                         </div>
@@ -674,18 +974,35 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
                       {/* Add to cart */}
                       <div className="flex justify-end mt-2">
                         {cart[item.id] ? (
-                          <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 bg-stone-900 text-white rounded-full p-1">
-                            <button onClick={() => updateCart(item.id, -1)} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center active:bg-white/20">
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-2 bg-stone-900 text-white rounded-full p-1"
+                          >
+                            <button
+                              onClick={() => updateCart(item.id, -1)}
+                              className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center active:bg-white/20"
+                            >
                               <Minus className="w-3 h-3" />
                             </button>
-                            <span className="text-xs font-black w-5 text-center">{cart[item.id].qty}</span>
-                            <button onClick={(e) => { e.stopPropagation(); handleAddItem(item); }} className="w-8 h-8 rounded-full bg-white flex items-center justify-center active:scale-95 transition-transform">
+                            <span className="text-xs font-black w-5 text-center">
+                              {cart[item.id].qty}
+                            </span>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddItem(item);
+                              }}
+                              className="w-8 h-8 rounded-full bg-white flex items-center justify-center active:scale-95 transition-transform"
+                            >
                               <Plus className="w-3 h-3 text-stone-900" />
                             </button>
                           </div>
                         ) : (
                           <button
-                            onClick={(e) => { e.stopPropagation(); handleAddItem(item); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddItem(item);
+                            }}
                             disabled={isUnavailable}
                             className="bg-stone-900 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-95 transition-transform disabled:opacity-30"
                           >
@@ -707,7 +1024,9 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
         <div className="py-20 text-center">
           <Utensils className="w-12 h-12 text-stone-200 mx-auto mb-4" />
           <p className="text-sm font-bold text-stone-300">No items found</p>
-          <p className="text-xs text-stone-200 mt-1">Try a different search or category</p>
+          <p className="text-xs text-stone-200 mt-1">
+            Try a different search or category
+          </p>
         </div>
       )}
 
@@ -733,7 +1052,9 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
                 </div>
                 <span>View Order</span>
               </div>
-              <span className="text-sm tracking-tighter">{formatCurrency(cartSubtotal.toString())}</span>
+              <span className="text-sm tracking-tighter">
+                {formatCurrency(cartSubtotal.toString())}
+              </span>
             </button>
           </motion.div>
         )}
@@ -742,8 +1063,16 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
       {/* Checkout Drawer */}
       <AnimatePresence>
         {isCheckoutOpen && (
-          <div className="fixed inset-0 z-[100]" onClick={() => setIsCheckoutOpen(false)}>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div
+            className="fixed inset-0 z-[100]"
+            onClick={() => setIsCheckoutOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            />
             <motion.div
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
@@ -759,8 +1088,13 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
 
               <div className="px-6 pb-6 flex-1 overflow-y-auto">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-black text-stone-900 uppercase tracking-tight">Your Order</h3>
-                  <button onClick={() => setIsCheckoutOpen(false)} className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center">
+                  <h3 className="text-lg font-black text-stone-900 uppercase tracking-tight">
+                    Your Order
+                  </h3>
+                  <button
+                    onClick={() => setIsCheckoutOpen(false)}
+                    className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center"
+                  >
                     <X className="w-4 h-4 text-stone-500" />
                   </button>
                 </div>
@@ -769,18 +1103,31 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
                 <div className="space-y-4 mb-6">
                   {Object.entries(cart).map(([id, entry]) => {
                     const item = liveItems.find((m) => m.id === id);
-                    const modifierNames = entry.modifiers.map((m) => m.name).join(", ");
-                    const itemTotal = parseFloat(item?.price || "0") * entry.qty + entry.modifiers.reduce((s, m) => s + m.priceDelta, 0) * entry.qty;
+                    const modifierNames = entry.modifiers
+                      .map((m) => m.name)
+                      .join(", ");
+                    const itemTotal =
+                      parseFloat(item?.price || "0") * entry.qty +
+                      entry.modifiers.reduce((s, m) => s + m.priceDelta, 0) *
+                        entry.qty;
                     return (
                       <div key={id} className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-stone-100 rounded-xl flex items-center justify-center text-xs font-black text-stone-500 shrink-0">
                           {entry.qty}x
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-stone-900 truncate">{item?.name}</p>
-                          {modifierNames && <p className="text-[10px] text-stone-400 truncate">{modifierNames}</p>}
+                          <p className="text-sm font-bold text-stone-900 truncate">
+                            {item?.name}
+                          </p>
+                          {modifierNames && (
+                            <p className="text-[10px] text-stone-400 truncate">
+                              {modifierNames}
+                            </p>
+                          )}
                         </div>
-                        <span className="text-sm font-black text-stone-900">{formatCurrency(itemTotal.toString())}</span>
+                        <span className="text-sm font-black text-stone-900">
+                          {formatCurrency(itemTotal.toString())}
+                        </span>
                       </div>
                     );
                   })}
@@ -788,43 +1135,100 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
 
                 {/* Phone */}
                 <div className="mb-4">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 block mb-2">Phone (for loyalty)</label>
-                  <input type="tel" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="+251 9XX XXX XXX" className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-stone-400" />
+                  <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 block mb-2">
+                    Phone (for loyalty)
+                  </label>
+                  <input
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="+251 9XX XXX XXX"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-stone-400"
+                  />
                 </div>
 
                 {/* Promo */}
                 <div className="mb-4">
                   <div className="flex gap-2">
-                    <input type="text" value={promoCodeInput} onChange={(e) => { setPromoCodeInput(e.target.value.toUpperCase()); setAppliedPromo(null); setPromoError(""); }} placeholder="Promo Code" className="flex-1 bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm font-bold uppercase tracking-wider focus:outline-none focus:border-stone-400" />
-                    <button onClick={async () => {
-                      if (!promoCodeInput.trim()) return;
-                      setIsPromoValidating(true);
-                      try {
-                        const res = await fetch("/api/promo-codes/validate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: promoCodeInput.trim(), orderAmount: cartSubtotal.toString() }) });
-                        const data = await res.json();
-                        if (data.valid) setAppliedPromo(data);
-                        else setPromoError(data.error || "Invalid code");
-                      } catch { setPromoError("Failed"); }
-                      setIsPromoValidating(false);
-                    }} disabled={isPromoValidating || !promoCodeInput.trim()} className="bg-stone-900 text-white px-5 rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-50">
-                      {isPromoValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
+                    <input
+                      type="text"
+                      value={promoCodeInput}
+                      onChange={(e) => {
+                        setPromoCodeInput(e.target.value.toUpperCase());
+                        setAppliedPromo(null);
+                        setPromoError("");
+                      }}
+                      placeholder="Promo Code"
+                      className="flex-1 bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm font-bold uppercase tracking-wider focus:outline-none focus:border-stone-400"
+                    />
+                    <button
+                      onClick={async () => {
+                        if (!promoCodeInput.trim()) return;
+                        setIsPromoValidating(true);
+                        try {
+                          const res = await fetch("/api/promo-codes/validate", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              code: promoCodeInput.trim(),
+                              orderAmount: cartSubtotal.toString(),
+                            }),
+                          });
+                          const data = await res.json();
+                          if (data.valid) setAppliedPromo(data);
+                          else setPromoError(data.error || "Invalid code");
+                        } catch {
+                          setPromoError("Failed");
+                        }
+                        setIsPromoValidating(false);
+                      }}
+                      disabled={isPromoValidating || !promoCodeInput.trim()}
+                      className="bg-stone-900 text-white px-5 rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-50"
+                    >
+                      {isPromoValidating ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        "Apply"
+                      )}
                     </button>
                   </div>
-                  {promoError && <p className="text-[10px] font-bold text-red-500 mt-1">{promoError}</p>}
+                  {promoError && (
+                    <p className="text-[10px] font-bold text-red-500 mt-1">
+                      {promoError}
+                    </p>
+                  )}
                   {appliedPromo && (
                     <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-xl px-4 py-2 mt-2">
-                      <span className="text-[10px] font-black text-green-700 uppercase">Applied: {appliedPromo.promoCode?.code}</span>
-                      <span className="text-xs font-black text-green-700">-{formatCurrency(appliedPromo.discount!.toString())}</span>
+                      <span className="text-[10px] font-black text-green-700 uppercase">
+                        Applied: {appliedPromo.promoCode?.code}
+                      </span>
+                      <span className="text-xs font-black text-green-700">
+                        -{formatCurrency(appliedPromo.discount!.toString())}
+                      </span>
                     </div>
                   )}
                 </div>
 
                 {/* Tip */}
                 <div className="mb-6">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 block mb-2">Add a Tip</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 block mb-2">
+                    Add a Tip
+                  </label>
                   <div className="flex gap-2">
                     {[0, 10, 20, 50].map((v) => (
-                      <button key={v} onClick={() => { setSelectedTip(v); setCustomTipAmount(""); }} className={cn("flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all", selectedTip === v && !customTipAmount ? "bg-stone-900 text-white border-stone-900" : "bg-white text-stone-400 border-stone-200")}>
+                      <button
+                        key={v}
+                        onClick={() => {
+                          setSelectedTip(v);
+                          setCustomTipAmount("");
+                        }}
+                        className={cn(
+                          "flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
+                          selectedTip === v && !customTipAmount
+                            ? "bg-stone-900 text-white border-stone-900"
+                            : "bg-white text-stone-400 border-stone-200",
+                        )}
+                      >
                         {v === 0 ? "None" : `${v}`}
                       </button>
                     ))}
@@ -835,38 +1239,62 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
                 <div className="space-y-2 mb-6">
                   <div className="flex justify-between text-xs text-stone-400">
                     <span>Subtotal</span>
-                    <span className="font-bold">{formatCurrency(cartSubtotal.toString())}</span>
+                    <span className="font-bold">
+                      {formatCurrency(cartSubtotal.toString())}
+                    </span>
                   </div>
                   <div className="flex justify-between text-xs text-stone-400">
                     <span>VAT ({(vatRate * 100).toFixed(0)}%)</span>
-                    <span className="font-bold">{formatCurrency(vatAmount.toFixed(2))}</span>
+                    <span className="font-bold">
+                      {formatCurrency(vatAmount.toFixed(2))}
+                    </span>
                   </div>
                   <div className="flex justify-between text-xs text-stone-400">
-                    <span>Service ({(serviceChargeRate * 100).toFixed(0)}%)</span>
-                    <span className="font-bold">{formatCurrency(serviceAmount.toFixed(2))}</span>
+                    <span>
+                      Service ({(serviceChargeRate * 100).toFixed(0)}%)
+                    </span>
+                    <span className="font-bold">
+                      {formatCurrency(serviceAmount.toFixed(2))}
+                    </span>
                   </div>
                   {discountAmount > 0 && (
                     <div className="flex justify-between text-xs text-green-600">
                       <span>Discount</span>
-                      <span className="font-bold">-{formatCurrency(discountAmount.toString())}</span>
+                      <span className="font-bold">
+                        -{formatCurrency(discountAmount.toString())}
+                      </span>
                     </div>
                   )}
                   {selectedTip > 0 && (
                     <div className="flex justify-between text-xs text-stone-400">
                       <span>Tip</span>
-                      <span className="font-bold">{formatCurrency(selectedTip.toString())}</span>
+                      <span className="font-bold">
+                        {formatCurrency(selectedTip.toString())}
+                      </span>
                     </div>
                   )}
                   <div className="flex justify-between pt-2 border-t border-stone-100">
-                    <span className="text-sm font-black text-stone-900 uppercase tracking-widest">Total</span>
-                    <span className="text-xl font-black text-stone-900 tracking-tighter">{formatCurrency(cartTotal.toString())}</span>
+                    <span className="text-sm font-black text-stone-900 uppercase tracking-widest">
+                      Total
+                    </span>
+                    <span className="text-xl font-black text-stone-900 tracking-tighter">
+                      {formatCurrency(cartTotal.toString())}
+                    </span>
                   </div>
                 </div>
 
                 {/* Place Order Button */}
                 <div className="space-y-3">
-                  <button onClick={() => placeOrderMutation.mutate("cash")} disabled={placeOrderMutation.isPending} className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-transform">
-                    {placeOrderMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Place Order"}
+                  <button
+                    onClick={() => placeOrderMutation.mutate("cash")}
+                    disabled={placeOrderMutation.isPending}
+                    className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-transform"
+                  >
+                    {placeOrderMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      "Place Order"
+                    )}
                   </button>
                 </div>
               </div>
@@ -876,17 +1304,35 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
       </AnimatePresence>
 
       {/* Service Request Buttons */}
-      {!activeOrderId && <ServiceRequestButton hotelId={hotelId} tableId={tableId} hasFloatingCart={cartItemCount > 0} />}
+      {!activeOrderId && (
+        <ServiceRequestButton
+          hotelId={hotelId}
+          tableId={tableId}
+          hasFloatingCart={cartItemCount > 0}
+        />
+      )}
 
       {/* Modifier Sheet */}
       {modifierItem && (
-        <ItemModifierSheet itemId={modifierItem.id} itemName={modifierItem.name} basePrice={modifierItem.price} onConfirm={handleModifierConfirm} onClose={() => setModifierItem(null)} />
+        <ItemModifierSheet
+          itemId={modifierItem.id}
+          itemName={modifierItem.name}
+          basePrice={modifierItem.price}
+          onConfirm={handleModifierConfirm}
+          onClose={() => setModifierItem(null)}
+        />
       )}
 
       {/* Detail Sheet */}
       {detailItem && (
         <ItemDetailSheet
-          item={{ ...detailItem, imageUrl: detailItem.imageUrl || null, description: detailItem.description || null, descriptionAm: detailItem.descriptionAm || null, estimatedPrepTime: detailItem.estimatedPrepTime ?? null }}
+          item={{
+            ...detailItem,
+            imageUrl: detailItem.imageUrl || null,
+            description: detailItem.description || null,
+            descriptionAm: detailItem.descriptionAm || null,
+            estimatedPrepTime: detailItem.estimatedPrepTime ?? null,
+          }}
           cartQty={cart[detailItem.id]?.qty || 0}
           onAdd={() => handleAddItem(detailItem)}
           onRemove={() => updateCart(detailItem.id, -1)}

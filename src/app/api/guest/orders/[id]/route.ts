@@ -66,7 +66,7 @@ export async function GET(
         name: i.name || "Item",
         quantity: i.quantity,
         unitPrice: i.unitPrice,
-        modifiers: i.modifiers ? JSON.parse(i.modifiers as string) : [],
+        modifiers: Array.isArray(i.modifiers) ? i.modifiers : [],
       })),
       receiptSettings: settings || {
         headerText: "Thank you!",

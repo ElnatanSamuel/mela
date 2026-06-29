@@ -6,7 +6,6 @@ import {
   Loader2,
   CheckCircle2,
   Phone,
-  Receipt,
   X,
   MessageCircle,
 } from "lucide-react";
@@ -22,7 +21,6 @@ export function ServiceRequestButton({ hotelId, tableId, hasFloatingCart }: Serv
   const [isOpen, setIsOpen] = useState(false);
   const [calling, setCalling] = useState(false);
   const [callSent, setCallSent] = useState(false);
-  const [billSent, setBillSent] = useState(false);
   const [helpSent, setHelpSent] = useState(false);
 
   const sendRequest = async (type: "call_waiter" | "request_bill" | "need_help") => {
@@ -37,9 +35,6 @@ export function ServiceRequestButton({ hotelId, tableId, hasFloatingCart }: Serv
         if (type === "call_waiter") {
           setCallSent(true);
           setTimeout(() => setCallSent(false), 30000);
-        } else if (type === "request_bill") {
-          setBillSent(true);
-          setTimeout(() => setBillSent(false), 30000);
         } else {
           setHelpSent(true);
           setTimeout(() => setHelpSent(false), 30000);
@@ -68,17 +63,6 @@ export function ServiceRequestButton({ hotelId, tableId, hasFloatingCart }: Serv
           >
             <CheckCircle2 className="w-4 h-4" />
             Waiter is on the way
-          </motion.div>
-        )}
-        {billSent && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            className="bg-green-500 text-white px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl flex items-center gap-2"
-          >
-            <CheckCircle2 className="w-4 h-4" />
-            Bill requested
           </motion.div>
         )}
         {helpSent && (
@@ -123,26 +107,6 @@ export function ServiceRequestButton({ hotelId, tableId, hasFloatingCart }: Serv
               </div>
               {calling && <Loader2 className="w-5 h-5 animate-spin text-orange-500" />}
               {callSent && <CheckCircle2 className="w-5 h-5 text-green-500" />}
-            </button>
-
-            {/* Request Bill */}
-            <button
-              onClick={() => sendRequest("request_bill")}
-              disabled={billSent}
-              className="w-full bg-white border-2 border-neutral-200 rounded-2xl p-4 flex items-center gap-4 active:scale-[0.98] transition-all shadow-lg disabled:opacity-50"
-            >
-              <div className="w-12 h-12 bg-neutral-900 rounded-xl flex items-center justify-center shrink-0">
-                <Receipt className="w-6 h-6 text-white" />
-              </div>
-              <div className="flex-1 text-left">
-                <p className="text-sm font-black text-neutral-900 uppercase tracking-tight">
-                  {billSent ? "Bill Requested" : "Get the Bill"}
-                </p>
-                <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mt-0.5">
-                  {billSent ? "Coming right up" : "Request your check / receipt"}
-                </p>
-              </div>
-              {billSent && <CheckCircle2 className="w-5 h-5 text-green-500" />}
             </button>
 
             {/* Need Help */}
