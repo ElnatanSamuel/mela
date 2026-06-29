@@ -17,12 +17,15 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Chapa not configured" }, { status: 500 });
     }
 
+    console.log("[Chapa Confirm] Verifying txRef:", txRef, "for orderId:", orderId);
     const verifyRes = await fetch(`https://api.chapa.co/v1/transaction/verify/${txRef}`, {
       headers: { Authorization: `Bearer ${secretKey}` },
     });
     const verifyData = await verifyRes.json();
+    console.log("[Chapa Confirm] Verify response for", txRef, ":", JSON.stringify(verifyData, null, 2));
 
     if (verifyData.status !== "success" || verifyData.data?.status !== "success") {
+      console.error("[Chapa Confirm] Verification failed for txRef:", txRef, "response:", JSON.stringify(verifyData, null, 2));
       return NextResponse.json({ error: "Payment not verified" }, { status: 400 });
     }
 
@@ -38,12 +41,12 @@ export async function POST(req: Request) {
     }
 
     // Update order payment status
+    console.log("[Chapa Confirm] Confirming order", orderId, "as paid");
     await db
       .update(orders)
       .set({ paymentStatus: "paid" })
       .where(eq(orders.id, orderId));
 
-    // Record transaction
     await db.insert(transactions).values({
       orderId,
       hotelId: order.hotelId,
@@ -52,6 +55,8 @@ export async function POST(req: Request) {
       providerReference: verifyData.data?.ref_id || txRef,
       status: "success",
     });
+
+    console.log("[Chapa Confirm] Done — order", orderId, "paid via confirm");
 
     return NextResponse.json({ success: true });
   } catch (err: any) {

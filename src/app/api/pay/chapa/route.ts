@@ -15,9 +15,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Chapa not configured" }, { status: 500 });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3005";
+    const host = req.headers.get("host") || "localhost:3005";
+    const protocol = req.headers.get("x-forwarded-proto") || "https";
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
     const callbackUrl = `${baseUrl}/api/pay/chapa/callback`;
     const returnUrl = `${baseUrl}/payment/success?tx_ref=${txRef}`;
+    console.log("[Chapa Init] baseUrl:", baseUrl, "callback:", callbackUrl, "return:", returnUrl);
 
     const payload = {
       amount: amount.toString(),

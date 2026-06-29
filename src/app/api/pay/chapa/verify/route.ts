@@ -16,6 +16,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Chapa not configured" }, { status: 500 });
     }
 
+    console.log("[Chapa Verify] Calling Chapa API for tx_ref:", txRef);
     const res = await fetch(`${CHAPA_API}/${txRef}`, {
       method: "GET",
       headers: {
@@ -24,8 +25,10 @@ export async function GET(req: Request) {
     });
 
     const data = await res.json();
+    console.log("[Chapa Verify] Response for", txRef, ":", JSON.stringify(data, null, 2));
 
     if (data.status !== "success") {
+      console.error("[Chapa Verify] Failed for tx_ref:", txRef, "response:", JSON.stringify(data, null, 2));
       return NextResponse.json({ verified: false, status: data.data?.status || "unknown" });
     }
 

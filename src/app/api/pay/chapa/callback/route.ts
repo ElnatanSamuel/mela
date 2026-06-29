@@ -19,13 +19,17 @@ export async function GET(req: Request) {
       return new NextResponse("Chapa not configured", { status: 500 });
     }
 
+    console.log("[Chapa Callback] Received for trx_ref:", trxRef, "ref_id:", refId, "status:", status);
+
     // Verify with Chapa API
     const verifyRes = await fetch(`https://api.chapa.co/v1/transaction/verify/${trxRef}`, {
       headers: { Authorization: `Bearer ${secretKey}` },
     });
     const verifyData = await verifyRes.json();
+    console.log("[Chapa Callback] Verify response:", JSON.stringify(verifyData, null, 2));
 
     if (verifyData.status !== "success" || verifyData.data?.status !== "success") {
+      console.error("[Chapa Callback] Payment not verified for trx_ref:", trxRef, "response:", JSON.stringify(verifyData, null, 2));
       return new NextResponse("Payment not verified", { status: 400 });
     }
 
@@ -66,12 +70,12 @@ export async function GET(req: Request) {
     }
 
     // Mark as paid
+    console.log("[Chapa Callback] Marking order", orderId, "as paid");
     await db
       .update(orders)
       .set({ paymentStatus: "paid" })
       .where(eq(orders.id, orderId));
 
-    // Record transaction
     await db.insert(transactions).values({
       orderId,
       hotelId,
@@ -80,6 +84,8 @@ export async function GET(req: Request) {
       providerReference: refId || verifyData.data?.ref_id || trxRef,
       status: "success",
     });
+
+    console.log("[Chapa Callback] Done — order", orderId, "paid, transaction recorded");
 
     return new NextResponse("OK", { status: 200 });
   } catch (err) {
