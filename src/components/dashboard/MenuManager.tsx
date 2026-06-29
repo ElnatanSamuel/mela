@@ -20,7 +20,9 @@ import {
 } from "lucide-react";
 import MenuManagerSkeleton from "./MenuManagerSkeleton";
 import { Modal } from "@/components/ui/Modal";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import ActionMenu from "@/components/ui/ActionMenu";
+import { useToastStore } from "@/lib/toast-store";
 
 interface MenuVersion {
   id: string;
@@ -53,6 +55,7 @@ interface Category {
 export default function MenuManager() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { addToast } = useToastStore();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -62,6 +65,7 @@ export default function MenuManager() {
   const [itemToDelete, setItemToDelete] = useState<MenuItem | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
+  const [catToDelete, setCatToDelete] = useState<{ id: string; name: string } | null>(null);
 
   // Category Form State
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -134,7 +138,7 @@ export default function MenuManager() {
       setFormData((prev) => ({ ...prev, imageUrl: publicUrl }));
     } catch (err) {
       console.error("Upload error:", err);
-      alert("Upload failed. Make sure 'menu-images' bucket exists and is public.");
+      addToast("Upload failed. Make sure 'menu-images' bucket exists and is public.", "error");
     } finally {
       setIsUploading(false);
     }
@@ -494,9 +498,7 @@ export default function MenuManager() {
               >
                 <span className="font-bold text-foreground uppercase text-[10px] tracking-widest">{cat.name}</span>
                 <button
-                  onClick={() => {
-                    if (confirm("Delete category and its items?")) deleteCategoryMutation.mutate(cat.id);
-                  }}
+                  onClick={() => setCatToDelete({ id: cat.id, name: cat.name })}
                   className="text-muted-foreground hover:text-destructive transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -698,6 +700,22 @@ export default function MenuManager() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmModal
+        isOpen={!!catToDelete}
+        onClose={() => setCatToDelete(null)}
+        onConfirm={() => {
+          if (catToDelete) {
+            deleteCategoryMutation.mutate(catToDelete.id);
+            setCatToDelete(null);
+          }
+        }}
+        title="Delete Category"
+        message={`Delete "${catToDelete?.name}" and all its items? This cannot be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        isLoading={deleteCategoryMutation.isPending}
+      />
     </div>
   );
 }

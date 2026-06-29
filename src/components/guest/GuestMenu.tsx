@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { getFastingState } from "@/lib/fasting-calendar";
 import { ItemModifierSheet } from "./ItemModifierSheet";
 import { ItemDetailSheet } from "./ItemDetailSheet";
+import { useToastStore } from "@/lib/toast-store";
 import {
   Search,
   Plus,
@@ -104,6 +105,7 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
   const [customTipAmount, setCustomTipAmount] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [showComplaintModal, setShowComplaintModal] = useState(false);
+  const { addToast } = useToastStore();
   const [complaintMessage, setComplaintMessage] = useState("");
   const [currentOrderTotal, setCurrentOrderTotal] = useState<string | null>(null);
   const [currentOrderPaymentType, setCurrentOrderPaymentType] = useState<string | null>(null);
@@ -218,7 +220,7 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
     },
     onError: (error) => {
       console.error("Place order failed:", error);
-      alert("Failed to place order. Please try again.");
+      addToast("Failed to place order. Please try again.", "error");
     },
   });
 

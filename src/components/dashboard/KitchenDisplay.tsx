@@ -15,6 +15,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useToastStore } from "@/lib/toast-store";
 
 interface OrderItem {
   menuItemId: string;
@@ -68,6 +69,7 @@ function TimeAgo({ time }: { time: string }) {
 export default function KitchenDisplay({ hotelId }: { hotelId: string }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const { addToast } = useToastStore();
   const prevOrderCount = React.useRef(orders.length);
 
   useEffect(() => {
@@ -146,7 +148,7 @@ export default function KitchenDisplay({ hotelId }: { hotelId: string }) {
     },
     onError: (error) => {
       console.error("Kitchen status update failed:", error.message);
-      alert(`Update failed: ${error.message}`);
+      addToast(`Update failed: ${error.message}`, "error");
     },
   });
 

@@ -17,7 +17,9 @@ import {
 } from "lucide-react";
 import { createHotel, updateHotel, deleteHotel } from "@/lib/actions";
 import { Modal } from "@/components/ui/Modal";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import ActionMenu from "@/components/ui/ActionMenu";
+import { useToastStore } from "@/lib/toast-store";
 import Link from "next/link";
 
 interface Hotel {
@@ -48,6 +50,7 @@ export function HotelModal({
   hotel?: Hotel | null;
 }) {
   const [loading, setLoading] = useState(false);
+  const { addToast } = useToastStore();
   const [name, setName] = useState(hotel?.name || "");
   const [slug, setSlug] = useState(hotel?.slug || "");
   const [logoPreview, setLogoPreview] = useState<string | null>(
@@ -109,7 +112,7 @@ export function HotelModal({
       }
       onClose();
     } catch (err: any) {
-      alert(err.message);
+      addToast(err.message || "Failed to save hotel", "error");
     } finally {
       setLoading(false);
     }
@@ -416,18 +419,24 @@ export function OnboardHotelButton() {
 
 export function HotelRowActions({ hotel }: { hotel: Hotel }) {
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { addToast } = useToastStore();
 
   async function handleDelete() {
-    if (confirm(`Are you sure you want to decommission ${hotel.name}?`)) {
-      setLoading(true);
-      try {
-        await deleteHotel(hotel.id);
-      } catch (err: any) {
-        alert(err.message);
-      } finally {
-        setLoading(false);
-      }
+    setShowDeleteConfirm(true);
+  }
+
+  async function confirmDelete() {
+    setLoading(true);
+    try {
+      await deleteHotel(hotel.id);
+      addToast(`${hotel.name} decommissioned`, "success");
+      setShowDeleteConfirm(false);
+    } catch (err: any) {
+      addToast(err.message || "Failed to delete hotel", "error");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -453,6 +462,17 @@ export function HotelRowActions({ hotel }: { hotel: Hotel }) {
         isOpen={isEditOpen}
         onClose={() => setIsEditOpen(false)}
         hotel={hotel}
+      />
+
+      <ConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={confirmDelete}
+        title="Decommission Hotel"
+        message={`Are you sure you want to decommission ${hotel.name}? This will remove all data.`}
+        confirmLabel="Decommission"
+        variant="danger"
+        isLoading={loading}
       />
     </div>
   );

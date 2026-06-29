@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { createStaff } from "@/lib/actions";
+import { useToastStore } from "@/lib/toast-store";
 
 const STAFF_ROLES = [
   { value: "waiter", label: "Waiter" },
@@ -29,6 +30,7 @@ export function AddStaffButton({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { addToast } = useToastStore();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -37,8 +39,9 @@ export function AddStaffButton({
     try {
       await createStaff(formData);
       setIsOpen(false);
+      addToast("Staff member created", "success");
     } catch (err: any) {
-      alert(err.message);
+      addToast(err.message || "Failed to create staff", "error");
     } finally {
       setLoading(false);
     }
