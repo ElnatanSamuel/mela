@@ -590,8 +590,8 @@ export default function OnboardPage() {
                       You're all set!
                     </h2>
                     <p className="text-neutral-500 text-sm mt-2 leading-relaxed">
-                      <span className="font-bold text-neutral-900">{createdHotelName}</span> has been created and is ready to go.
-                      You can now manage your menu, tables, and staff from the dashboard.
+                      <span className="font-bold text-neutral-900">{createdHotelName}</span> has been created and is pending approval.
+                      An admin will review and activate it shortly. You'll be able to log in once approved.
                     </p>
                   </div>
                   <button
@@ -601,6 +601,9 @@ export default function OnboardPage() {
                     Go to Dashboard
                     <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </button>
+                  <p className="text-[9px] text-neutral-400 mt-2 uppercase tracking-widest font-bold">
+                    Your menu won't be public until approved
+                  </p>
                 </div>
               )}
             </motion.div>

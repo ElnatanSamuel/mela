@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { hotels } from "@/db/schema";
-import { or, ilike, eq } from "drizzle-orm";
+import { or, ilike, eq, and } from "drizzle-orm";
 
 export async function GET(req: Request) {
   try {
@@ -10,9 +10,8 @@ export async function GET(req: Request) {
     const token = searchParams.get("token");
     const q = searchParams.get("q");
 
-    // Token-based lookup (secure, unguessable)
+    // Token-based lookup (secure, unguessable) — allow pending hotels
     if (token) {
-      // Try clock_token first, then kitchen_token
       let [hotel] = await db
         .select({ id: hotels.id, name: hotels.name, slug: hotels.slug })
         .from(hotels)
@@ -34,12 +33,12 @@ export async function GET(req: Request) {
       return NextResponse.json(hotel);
     }
 
-    // Slug lookup (legacy, still works for search/display)
+    // Slug lookup (public guest menu) — only approved hotels
     if (slug) {
       const [hotel] = await db
         .select({ id: hotels.id, name: hotels.name, slug: hotels.slug })
         .from(hotels)
-        .where(eq(hotels.slug, slug))
+        .where(and(eq(hotels.slug, slug), eq(hotels.status, "approved")))
         .limit(1);
 
       if (!hotel) {
@@ -49,17 +48,21 @@ export async function GET(req: Request) {
       return NextResponse.json(hotel);
     }
 
-    // Search by name/slug, or return all if no query
+    // Search — only approved hotels
     if (q !== null) {
       const results = q.length > 0
         ? await db
             .select({ id: hotels.id, name: hotels.name, slug: hotels.slug })
             .from(hotels)
-            .where(or(ilike(hotels.name, `%${q}%`), ilike(hotels.slug, `%${q}%`)))
+            .where(and(
+              or(ilike(hotels.name, `%${q}%`), ilike(hotels.slug, `%${q}%`)),
+              eq(hotels.status, "approved")
+            ))
             .limit(10)
         : await db
             .select({ id: hotels.id, name: hotels.name, slug: hotels.slug })
             .from(hotels)
+            .where(eq(hotels.status, "approved"))
             .limit(10);
 
       return NextResponse.json(results);

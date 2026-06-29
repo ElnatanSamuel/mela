@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { hotels } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { hotels, hotelUsers } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
+import { getSession } from "@/lib/auth-utils";
 
 export async function PATCH(
   req: Request,
@@ -9,6 +10,28 @@ export async function PATCH(
 ) {
   try {
     const { hotelId } = await params;
+    const body = await req.json();
+
+    // If changing status, verify admin auth
+    if (body.status) {
+      const session = await getSession();
+      if (!session?.data?.user) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      const [adminUser] = await db
+        .select()
+        .from(hotelUsers)
+        .where(
+          and(
+            eq(hotelUsers.userId, session.data.user.id),
+            eq(hotelUsers.role, "platform_admin")
+          )
+        )
+        .limit(1);
+      if (!adminUser) {
+        return NextResponse.json({ error: "Only platform admins can change hotel status" }, { status: 403 });
+      }
+    }
 
     const [existing] = await db
       .select()
@@ -20,7 +43,6 @@ export async function PATCH(
       return NextResponse.json({ error: "Hotel not found" }, { status: 404 });
     }
 
-    const body = await req.json();
     const { currency, vatRate, serviceChargeRate, ...rest } = body;
 
     const currentSettings = existing.settings as Record<string, any>;

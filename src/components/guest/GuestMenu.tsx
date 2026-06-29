@@ -40,6 +40,7 @@ interface GuestMenuProps {
   hotelId: string;
   tableId: string;
   hotelName: string;
+  hotelSlug: string;
 }
 
 interface MenuItem {
@@ -91,7 +92,7 @@ interface Combo {
   savings: number;
 }
 
-export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProps) {
+export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug }: GuestMenuProps) {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [cart, setCart] = useState<Record<string, CartEntry>>({});
@@ -198,7 +199,10 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
           customerPhone: customerPhone || undefined,
         }),
       });
-      if (!res.ok) throw new Error("Failed to place order");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: "Failed to place order" }));
+        throw new Error(errData.error || "Failed to place order");
+      }
       return res.json();
     },
     onSuccess: async (data, paymentMethod) => {
@@ -214,7 +218,7 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
           });
           const chapaData = await chapaRes.json();
           if (chapaData.checkoutUrl) {
-            sessionStorage.setItem("mela-pending-order", JSON.stringify({ orderId: data.id, txRef, hotelId, tableId }));
+            sessionStorage.setItem("mela-pending-order", JSON.stringify({ orderId: data.id, txRef, hotelId, tableId, hotelSlug }));
             window.location.href = chapaData.checkoutUrl;
             return;
           }
@@ -240,7 +244,7 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
     },
     onError: (error) => {
       console.error("Place order failed:", error);
-      addToast("Failed to place order. Please try again.", "error");
+      addToast(error.message || "Failed to place order. Please try again.", "error");
     },
   });
 
@@ -267,9 +271,13 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
         body: JSON.stringify({ amount: parseFloat(currentOrderTotal), txRef, firstName: "Guest", hotelName }),
       });
       const chapaData = await chapaRes.json();
-      if (!chapaData.checkoutUrl) throw new Error("Chapa init failed");
-      sessionStorage.setItem("mela-pending-order", JSON.stringify({ orderId: activeOrderId, txRef, hotelId, tableId }));
+      if (!chapaData.checkoutUrl) throw new Error(chapaData.error || "Chapa init failed");
+      sessionStorage.setItem("mela-pending-order", JSON.stringify({ orderId: activeOrderId, txRef, hotelId, tableId, hotelSlug }));
       window.location.href = chapaData.checkoutUrl;
+    },
+    onError: (error) => {
+      console.error("Pay now failed:", error);
+      addToast(error.message || "Payment failed. Try again or pay at counter.", "error");
     },
   });
 
@@ -469,25 +477,25 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
   // --- Main Menu ---
   return (
     <div className="px-4 pb-32">
-      {/* Search + Category Bar */}
-      <div className="sticky top-0 z-20 bg-stone-50/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4">
-        <div className="relative mb-3">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300" />
-          <input
-            type="text"
-            placeholder="Search menu..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white border border-stone-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:outline-none focus:border-stone-900 focus:ring-2 focus:ring-stone-900/5 transition-all shadow-sm"
-          />
-        </div>
+      {/* Search */}
+      <div className="relative mb-4">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300" />
+        <input
+          type="text"
+          placeholder="Search menu..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full bg-white border border-stone-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:outline-none focus:border-stone-900 focus:ring-2 focus:ring-stone-900/5 transition-all shadow-sm"
+        />
+      </div>
 
-        {/* Category Pills */}
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+      {/* Category Pills */}
+      <div className="flex gap-2 overflow-x-auto pb-1 mb-6 -mx-4 px-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <div className="flex gap-2 shrink-0">
           <button
             onClick={() => setActiveCategory("all")}
             className={cn(
-              "px-5 py-2.5 rounded-full text-xs font-bold transition-all shrink-0 whitespace-nowrap",
+              "px-5 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap",
               activeCategory === "all"
                 ? "bg-stone-900 text-white shadow-lg shadow-stone-900/20"
                 : "bg-white text-stone-400 border border-stone-200 active:bg-stone-100"
@@ -500,7 +508,7 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
               className={cn(
-                "px-5 py-2.5 rounded-full text-xs font-bold transition-all shrink-0 whitespace-nowrap",
+                "px-5 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap",
                 activeCategory === cat.id
                   ? "bg-stone-900 text-white shadow-lg shadow-stone-900/20"
                   : "bg-white text-stone-400 border border-stone-200 active:bg-stone-100"

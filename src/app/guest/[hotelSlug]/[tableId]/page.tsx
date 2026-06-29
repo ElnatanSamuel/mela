@@ -50,7 +50,7 @@ export default async function GuestPage({ params }: GuestPageProps) {
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900">
       {/* Hero Banner */}
-      <div className="relative h-56 md:h-72 overflow-hidden">
+      <div className="relative h-36 md:h-44 overflow-hidden">
         {hotel.bannerUrl ? (
           <img
             src={hotel.bannerUrl}
@@ -92,8 +92,8 @@ export default async function GuestPage({ params }: GuestPageProps) {
       </div>
 
       {/* Menu Content */}
-      <main className="max-w-2xl mx-auto -mt-6 relative z-10">
-        <GuestMenu hotelId={hotel.id} tableId={displayTable.id} hotelName={hotel.name} />
+      <main className="max-w-2xl mx-auto -mt-10 relative z-10">
+        <GuestMenu hotelId={hotel.id} tableId={displayTable.id} hotelName={hotel.name} hotelSlug={hotelSlug} />
       </main>
 
       {/* Footer */}

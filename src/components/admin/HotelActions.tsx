@@ -31,6 +31,7 @@ interface Hotel {
   logoUrl: string | null;
   bannerUrl: string | null;
   vatNumber: string | null;
+  status?: string;
   subscriptionPlan?: string;
   subscriptionPlanId?: string | null;
   subscriptionExpiresAt?: Date | null;

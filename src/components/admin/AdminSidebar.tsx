@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -16,6 +16,7 @@ import {
   Download,
   User,
   ChevronRight,
+  Clock,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -54,6 +55,17 @@ interface AdminSidebarProps {
 export default function AdminSidebar({ email }: AdminSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/hotels")
+      .then((r) => r.json())
+      .then((data) => {
+        const pending = data.filter((h: any) => h.status === "pending").length;
+        setPendingCount(pending);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <aside className="w-64 border-r border-border flex flex-col bg-card overflow-hidden">
@@ -87,7 +99,12 @@ export default function AdminSidebar({ email }: AdminSidebarProps) {
                       }`}
                     >
                       <item.icon className="w-3.5 h-3.5" />
-                      {item.label}
+                      <span className="flex-1">{item.label}</span>
+                      {item.label === "Hotels" && pendingCount > 0 && (
+                        <span className="px-1.5 py-0.5 rounded-[3px] bg-amber-500/10 text-amber-500 text-[7px] font-black uppercase tracking-widest border border-amber-500/20">
+                          {pendingCount}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}

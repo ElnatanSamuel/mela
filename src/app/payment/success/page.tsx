@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, Loader2, XCircle, ArrowLeft } from "lucide-react";
 import GuestReceipt from "@/components/guest/GuestReceipt";
 
-export default function PaymentSuccessPage() {
+function PaymentContent() {
   const searchParams = useSearchParams();
   const txRef = searchParams.get("tx_ref");
   const [status, setStatus] = useState<"loading" | "success" | "failed">("loading");
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [hotelSlug, setHotelSlug] = useState<string | null>(null);
+  const [tableId, setTableId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!txRef) {
@@ -17,15 +19,17 @@ export default function PaymentSuccessPage() {
       return;
     }
 
+    const pending = JSON.parse(sessionStorage.getItem("mela-pending-order") || "{}");
+    if (pending.hotelSlug) setHotelSlug(pending.hotelSlug);
+    if (pending.tableId) setTableId(pending.tableId);
+    if (!pending.orderId) {
+      setStatus("failed");
+      return;
+    }
+    setOrderId(pending.orderId);
+
     const confirmPayment = async () => {
       try {
-        const pending = JSON.parse(sessionStorage.getItem("mela-pending-order") || "{}");
-        if (!pending.orderId) {
-          setStatus("failed");
-          return;
-        }
-        setOrderId(pending.orderId);
-
         const verifyRes = await fetch(`/api/pay/chapa/verify?tx_ref=${txRef}`);
         const verifyData = await verifyRes.json();
 
@@ -48,6 +52,8 @@ export default function PaymentSuccessPage() {
 
     confirmPayment();
   }, [txRef]);
+
+  const backUrl = hotelSlug && tableId ? `/guest/${hotelSlug}/${tableId}` : "/";
 
   if (status === "loading") {
     return (
@@ -76,15 +82,14 @@ export default function PaymentSuccessPage() {
           <p className="text-sm text-neutral-400">
             Something went wrong. Please try again.
           </p>
-          <a href="/" className="inline-block bg-neutral-900 text-white px-8 py-4 rounded-full text-xs font-black uppercase tracking-widest">
-            Go Back
+          <a href={backUrl} className="inline-block bg-neutral-900 text-white px-8 py-4 rounded-full text-xs font-black uppercase tracking-widest">
+            Back to Menu
           </a>
         </div>
       </div>
     );
   }
 
-  // Show receipt on success
   return (
     <div className="min-h-screen bg-stone-50">
       <div className="pt-6 px-4 text-center">
@@ -99,8 +104,20 @@ export default function PaymentSuccessPage() {
         </p>
       </div>
       {orderId && (
-        <GuestReceipt orderId={orderId} onBack={() => window.location.href = "/"} />
+        <GuestReceipt orderId={orderId} onBack={() => window.location.href = backUrl} />
       )}
     </div>
+  );
+}
+
+export default function PaymentSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
+        <Loader2 className="w-16 h-16 text-neutral-300 mx-auto animate-spin" />
+      </div>
+    }>
+      <PaymentContent />
+    </Suspense>
   );
 }

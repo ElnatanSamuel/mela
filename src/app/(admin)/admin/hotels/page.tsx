@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Search, MapPin, Phone, Loader2 } from "lucide-react";
+import { Search, MapPin, Phone, Loader2, CheckCircle, XCircle, Clock } from "lucide-react";
 import {
   OnboardHotelButton,
   HotelRowActions,
 } from "@/components/admin/HotelActions";
+import { useToastStore } from "@/lib/toast-store";
 
 interface Hotel {
   id: string;
@@ -16,6 +17,7 @@ interface Hotel {
   location: string | null;
   phone: string | null;
   vatNumber: string | null;
+  status: string;
   settings: { vatRate: number; serviceChargeRate: number } | undefined;
 }
 
@@ -23,27 +25,90 @@ export default function HotelDirectoryPage() {
   const [search, setSearch] = useState("");
   const [allHotels, setAllHotels] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showPending, setShowPending] = useState(false);
 
-  useEffect(() => {
+  const fetchHotels = () => {
+    setLoading(true);
     fetch("/api/hotels")
       .then((r) => r.json())
       .then((data) => {
         setAllHotels(
           data.map((h: any) => ({
             ...h,
+            status: h.status || "approved",
             settings: h.settings as { vatRate: number; serviceChargeRate: number } | undefined,
           })),
         );
         setLoading(false);
       });
-  }, []);
+  };
 
-  const filtered = allHotels.filter(
+  useEffect(() => { fetchHotels(); }, []);
+
+  const { addToast } = useToastStore();
+
+  const handleStatusUpdate = async (hotelId: string, status: string) => {
+    setActionLoading(hotelId);
+    try {
+      const res = await fetch(`/api/hotels/${hotelId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to update status");
+      }
+      addToast(`Hotel status updated to ${status}`, "success");
+      fetchHotels();
+    } catch (err: any) {
+      addToast(err.message, "error");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const pendingCount = allHotels.filter((h) => h.status === "pending").length;
+
+  const filtered = (showPending ? allHotels.filter((h) => h.status === "pending") : allHotels).filter(
     (h) =>
       h.name.toLowerCase().includes(search.toLowerCase()) ||
       (h.location && h.location.toLowerCase().includes(search.toLowerCase())) ||
       h.slug.toLowerCase().includes(search.toLowerCase()),
   );
+
+  const statusBadge = (status: string) => {
+    switch (status) {
+      case "approved":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-green-500/10 text-green-500 text-[8px] font-black uppercase tracking-widest border border-green-500/20">
+            <CheckCircle className="w-2.5 h-2.5" />
+            Approved
+          </span>
+        );
+      case "pending":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-amber-500/10 text-amber-500 text-[8px] font-black uppercase tracking-widest border border-amber-500/20">
+            <Clock className="w-2.5 h-2.5" />
+            Pending
+          </span>
+        );
+      case "rejected":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-red-500/10 text-red-500 text-[8px] font-black uppercase tracking-widest border border-red-500/20">
+            <XCircle className="w-2.5 h-2.5" />
+            Rejected
+          </span>
+        );
+      default:
+        return (
+          <span className="px-2.5 py-1 rounded-[4px] bg-primary/10 text-primary text-[8px] font-black uppercase tracking-widest border border-primary/20">
+            {status}
+          </span>
+        );
+    }
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -56,7 +121,22 @@ export default function HotelDirectoryPage() {
             Manage all platform hotels
           </p>
         </div>
-        <OnboardHotelButton />
+        <div className="flex items-center gap-3">
+          {pendingCount > 0 && (
+            <button
+              onClick={() => setShowPending(!showPending)}
+              className={`flex items-center gap-2 px-5 py-3 rounded-[6px] text-[10px] font-black uppercase tracking-widest transition-all ${
+                showPending
+                  ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                  : "bg-card border border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" />
+              Pending ({pendingCount})
+            </button>
+          )}
+          <OnboardHotelButton />
+        </div>
       </div>
 
       <div className="flex gap-4">
@@ -82,7 +162,7 @@ export default function HotelDirectoryPage() {
             <div className="p-12 text-center space-y-2">
               <Search className="w-8 h-8 text-muted mx-auto" />
               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                No results found
+                {showPending ? "No pending hotels" : "No results found"}
               </p>
             </div>
           ) : (
@@ -148,9 +228,36 @@ export default function HotelDirectoryPage() {
                       </div>
                     </td>
                     <td className="px-6 py-5">
-                      <span className="px-2.5 py-1 rounded-[4px] bg-primary/10 text-primary text-[8px] font-black uppercase tracking-widest border border-primary/20">
-                        Active
-                      </span>
+                      <div className="flex flex-col gap-2">
+                        {statusBadge(hotel.status)}
+                        {hotel.status === "pending" && (
+                          <div className="flex gap-1.5">
+                            <button
+                              onClick={() => handleStatusUpdate(hotel.id, "approved")}
+                              disabled={actionLoading === hotel.id}
+                              className="px-2 py-1 rounded-[3px] bg-green-500/10 text-green-500 text-[7px] font-black uppercase tracking-widest border border-green-500/20 hover:bg-green-500/20 transition-all disabled:opacity-50"
+                            >
+                              {actionLoading === hotel.id ? "..." : "Approve"}
+                            </button>
+                            <button
+                              onClick={() => handleStatusUpdate(hotel.id, "rejected")}
+                              disabled={actionLoading === hotel.id}
+                              className="px-2 py-1 rounded-[3px] bg-red-500/10 text-red-500 text-[7px] font-black uppercase tracking-widest border border-red-500/20 hover:bg-red-500/20 transition-all disabled:opacity-50"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                        {hotel.status === "rejected" && (
+                          <button
+                            onClick={() => handleStatusUpdate(hotel.id, "pending")}
+                            disabled={actionLoading === hotel.id}
+                            className="px-2 py-1 rounded-[3px] bg-amber-500/10 text-amber-500 text-[7px] font-black uppercase tracking-widest border border-amber-500/20 hover:bg-amber-500/20 transition-all disabled:opacity-50 self-start"
+                          >
+                            {actionLoading === hotel.id ? "..." : "Reconsider"}
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-5 text-right">
                       <div className="flex justify-end">

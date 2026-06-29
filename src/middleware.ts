@@ -56,9 +56,10 @@ export async function middleware(request: NextRequest) {
 
   const isClock = request.nextUrl.pathname.startsWith('/auth/clock')
   const isKitchen = request.nextUrl.pathname.startsWith('/kitchen')
+  const isPayment = request.nextUrl.pathname.startsWith('/payment')
 
-  // 0. Always allow the clock page and kitchen pages (no auth needed)
-  if (isClock || isKitchen) return response
+  // 0. Always allow public pages (no auth needed)
+  if (isClock || isKitchen || isPayment) return response
 
   const { data: { user } } = await supabase.auth.getUser()
 

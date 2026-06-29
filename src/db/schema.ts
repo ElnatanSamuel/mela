@@ -18,6 +18,7 @@ export const hotels = pgTable('hotels', {
   location: text('location'),
   phone: text('phone'),
   vatNumber: text('vat_number'),
+  status: text('status', { enum: ['pending', 'approved', 'rejected'] }).default('approved').notNull(),
   settings: jsonb('settings').default({ vatRate: 0.15, serviceChargeRate: 0.10, kitchenPin: '1234' }).notNull(),
   subscriptionPlan: text('subscription_plan').default('Standard').notNull(),
   subscriptionPlanId: uuid('subscription_plan_id').references(() => subscriptionPlans.id),

@@ -28,6 +28,7 @@ export async function POST(req: Request) {
       location,
       phone,
       logoUrl,
+      status: "pending",
     }).returning();
 
     await db.insert(hotelUsers).values({

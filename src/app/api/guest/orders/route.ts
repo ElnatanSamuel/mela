@@ -8,6 +8,7 @@ export async function POST(req: Request) {
     const { hotelId, tableId, cartItems, orderType, promoCodeId, discountAmount, tipAmount, customerPhone } = await req.json();
 
     if (!hotelId || !tableId || !cartItems || Object.keys(cartItems).length === 0) {
+      console.error("Guest order: invalid data", { hotelId, tableId, cartItemsKeys: cartItems ? Object.keys(cartItems) : null });
       return NextResponse.json({ error: "Invalid order data" }, { status: 400 });
     }
 
