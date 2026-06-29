@@ -863,13 +863,10 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatR
                   </div>
                 </div>
 
-                {/* Pay Buttons */}
+                {/* Place Order Button */}
                 <div className="space-y-3">
-                  <button onClick={() => placeOrderMutation.mutate("digital")} disabled={placeOrderMutation.isPending} className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-transform">
-                    {placeOrderMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Pay with Chapa — {formatCurrency(cartTotal.toString())}</>}
-                  </button>
-                  <button onClick={() => placeOrderMutation.mutate("cash")} disabled={placeOrderMutation.isPending} className="w-full border-2 border-stone-200 text-stone-500 py-4 rounded-2xl text-xs font-black uppercase tracking-widest disabled:opacity-50">
-                    Pay at Counter
+                  <button onClick={() => placeOrderMutation.mutate("cash")} disabled={placeOrderMutation.isPending} className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-transform">
+                    {placeOrderMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Place Order"}
                   </button>
                 </div>
               </div>

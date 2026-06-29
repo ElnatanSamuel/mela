@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useRef, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { Loader2, CheckCircle2 } from "lucide-react";
+import GuestReceipt from "@/components/guest/GuestReceipt";
 
 function PaymentContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const txRef = searchParams.get("tx_ref");
   const orderIdParam = searchParams.get("order_id");
@@ -13,7 +13,7 @@ function PaymentContent() {
   const [hotelSlug, setHotelSlug] = useState<string | null>(null);
   const [tableId, setTableId] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(orderIdParam);
-  const [isChecking, setIsChecking] = useState(true);
+  const [status, setStatus] = useState<"polling" | "success">("polling");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -26,7 +26,6 @@ function PaymentContent() {
   useEffect(() => {
     if (!txRef) {
       setErrorMsg("No transaction reference found");
-      setIsChecking(false);
       return;
     }
 
@@ -51,11 +50,11 @@ function PaymentContent() {
             const slug = pending.hotelSlug || hotelSlug;
             const table = pending.tableId || tableId;
             const oid = orderId || pending.orderId;
-            if (slug && table && oid) {
-              router.replace(`/guest/${slug}/${table}?orderId=${oid}`);
-            } else {
-              setIsChecking(false);
-            }
+            if (!oid && !slug) return;
+            setOrderId(oid);
+            if (slug) setHotelSlug(slug);
+            if (table) setTableId(table);
+            setStatus("success");
           }
         }
       } catch (err) {
@@ -70,6 +69,11 @@ function PaymentContent() {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [txRef]);
+
+  if (status === "success" && orderId) {
+    const backUrl = hotelSlug && tableId ? `/guest/${hotelSlug}/${tableId}?orderId=${orderId}` : "/";
+    return <GuestReceipt orderId={orderId} onBack={() => window.location.href = backUrl} />;
+  }
 
   const backUrl = hotelSlug && tableId ? `/guest/${hotelSlug}/${tableId}` : "/";
 
