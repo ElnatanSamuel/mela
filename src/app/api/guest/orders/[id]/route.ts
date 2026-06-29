@@ -37,6 +37,7 @@ export async function GET(
         quantity: orderItems.quantity,
         unitPrice: orderItems.unitPrice,
         modifiers: orderItems.modifiers,
+        status: orderItems.status,
       })
       .from(orderItems)
       .leftJoin(menuItems, eq(orderItems.menuItemId, menuItems.id))
@@ -51,6 +52,7 @@ export async function GET(
     return NextResponse.json({
       order: {
         id: order.id,
+        tableId: order.tableId,
         totalAmount: order.totalAmount,
         vatAmount: order.vatAmount,
         serviceCharge: order.serviceCharge,
@@ -67,6 +69,7 @@ export async function GET(
         quantity: i.quantity,
         unitPrice: i.unitPrice,
         modifiers: Array.isArray(i.modifiers) ? i.modifiers : [],
+        status: i.status,
       })),
       receiptSettings: settings || {
         headerText: "Thank you!",
@@ -74,6 +77,7 @@ export async function GET(
         showLogo: true,
         showVat: true,
         showServiceCharge: true,
+        showItemStatus: false,
       },
     });
   } catch (err: any) {

@@ -52,8 +52,8 @@ function LiveClock() {
   }, []);
   return (
     <div className="text-center">
-      <p className="text-5xl font-black tabular-nums tracking-tighter text-white">{time}</p>
-      <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-neutral-500 mt-1">{date}</p>
+      <p className="text-5xl font-black tabular-nums tracking-tighter text-foreground">{time}</p>
+      <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-muted-foreground mt-1">{date}</p>
     </div>
   );
 }
@@ -174,7 +174,7 @@ export default function ClockTokenPage() {
   // Loading
   if (hotelLoading || step === "hotel") {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
       </div>
     );
@@ -183,11 +183,11 @@ export default function ClockTokenPage() {
   // Not found
   if (hotelError || !hotel) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <div className="text-center space-y-4">
           <AlertCircle className="w-10 h-10 text-red-500 mx-auto" />
-          <h2 className="text-xl font-black uppercase tracking-tight text-white">Link Invalid</h2>
-          <p className="text-xs text-neutral-500 font-bold uppercase tracking-widest">This clock link is invalid or revoked</p>
+          <h2 className="text-xl font-black uppercase tracking-tight text-foreground">Link Invalid</h2>
+          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">This clock link is invalid or revoked</p>
         </div>
       </div>
     );
@@ -196,11 +196,11 @@ export default function ClockTokenPage() {
   // PIN Entry
   if (step === "pin") {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <h1 className="text-xl font-black text-white uppercase tracking-tight">{hotel.name}</h1>
-            <p className="text-xs text-neutral-500 mt-1 uppercase tracking-widest font-bold">Staff Clock</p>
+            <h1 className="text-xl font-black text-foreground uppercase tracking-tight">{hotel.name}</h1>
+            <p className="text-xs text-muted-foreground mt-1 uppercase tracking-widest font-bold">Staff Clock</p>
           </div>
           <div className="space-y-4">
             <input
@@ -211,7 +211,7 @@ export default function ClockTokenPage() {
               placeholder="Enter PIN"
               maxLength={6}
               autoFocus
-              className="w-full bg-neutral-900 border border-neutral-800 rounded-xl py-3 px-4 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-orange-500 tracking-[0.5em] font-mono text-center text-lg"
+              className="w-full bg-card border border-border rounded-xl py-3 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-orange-500 tracking-[0.5em] font-mono text-center text-lg"
             />
             {pinError && <p className="text-xs font-bold text-red-500 text-center">{pinError}</p>}
             <button
@@ -230,52 +230,52 @@ export default function ClockTokenPage() {
   // Staff List with Search
   if (step === "list") {
     return (
-      <div className="min-h-screen bg-neutral-950 flex flex-col">
-        <header className="bg-neutral-900 border-b border-neutral-800 px-4 py-4 shrink-0">
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="bg-card border-b border-border px-4 py-4 shrink-0">
           <div className="max-w-lg mx-auto">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-sm font-black tracking-tight uppercase text-white">{hotel.name}</h1>
+                <h1 className="text-sm font-black tracking-tight uppercase text-foreground">{hotel.name}</h1>
                 <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-orange-500">Staff Clock</p>
               </div>
               <div className="flex items-center gap-3">
                 {!showSearch && (
-                  <button onClick={() => setShowSearch(true)} className="w-10 h-10 rounded-xl bg-neutral-800 flex items-center justify-center">
-                    <Search className="w-4 h-4 text-neutral-400" />
+                  <button onClick={() => setShowSearch(true)} className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
+                    <Search className="w-4 h-4 text-muted-foreground" />
                   </button>
                 )}
                 <LiveClock />
               </div>
             </div>
             {todaySchedule && (
-              <div className="mt-3 px-3 py-2 bg-neutral-800 rounded-xl border border-neutral-700 flex items-center gap-2">
+              <div className="mt-3 px-3 py-2 bg-muted rounded-xl border border-border flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5 text-orange-500" />
-                <p className="text-[10px] font-bold text-neutral-300 uppercase tracking-widest">
+                <p className="text-[10px] font-bold text-foreground uppercase tracking-widest">
                   Today: {todaySchedule.startTime} — {todaySchedule.endTime}
                 </p>
               </div>
             )}
             {!todaySchedule && schedules.length > 0 && (
-              <div className="mt-3 px-3 py-2 bg-neutral-800 rounded-xl border border-neutral-700 flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5 text-neutral-500" />
-                <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">
+              <div className="mt-3 px-3 py-2 bg-muted rounded-xl border border-border flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                   No schedule set for today
                 </p>
               </div>
             )}
             {showSearch && (
               <div className="relative mt-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search by name or role..."
                   autoFocus
-                  className="w-full bg-neutral-800 border border-neutral-700 rounded-xl py-3 pl-10 pr-10 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:border-orange-500"
+                  className="w-full bg-muted border border-border rounded-xl py-3 pl-10 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-orange-500"
                 />
                 <button onClick={() => { setShowSearch(false); setSearch(""); }} className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <X className="w-4 h-4 text-neutral-500 hover:text-white" />
+                  <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                 </button>
               </div>
             )}
@@ -290,8 +290,8 @@ export default function ClockTokenPage() {
               </div>
             ) : filtered.length === 0 ? (
               <div className="text-center py-16">
-                <User className="w-10 h-10 text-neutral-700 mx-auto mb-3" />
-                <p className="text-sm font-bold text-neutral-500 uppercase tracking-widest">
+                <User className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
                   {search ? "No matches" : "No staff yet"}
                 </p>
               </div>
@@ -303,21 +303,21 @@ export default function ClockTokenPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.02 }}
                   onClick={() => { setSelectedStaff(member); setStep("detail"); }}
-                  className="w-full bg-neutral-900 border border-neutral-800 rounded-xl p-4 flex items-center gap-4 hover:border-orange-500/50 transition-all active:scale-[0.98] text-left"
+                  className="w-full bg-card border border-border rounded-xl p-4 flex items-center gap-4 hover:border-orange-500/50 transition-all active:scale-[0.98] text-left"
                 >
-                  <div className="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center shrink-0">
-                    <span className="text-sm font-black text-white">
+                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    <span className="text-sm font-black text-foreground">
                       {(member.name || "?")[0]?.toUpperCase()}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-black text-white truncate">{member.name || "Unknown"}</p>
-                    <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">{ROLE_LABELS[member.role] || member.role}</p>
+                    <p className="text-sm font-black text-foreground truncate">{member.name || "Unknown"}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{ROLE_LABELS[member.role] || member.role}</p>
                   </div>
-                  <div className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${ROLE_COLORS[member.role] || "bg-neutral-800 text-neutral-400"}`}>
+                  <div className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${ROLE_COLORS[member.role] || "bg-muted text-muted-foreground"}`}>
                     {ROLE_LABELS[member.role] || member.role}
                   </div>
-                  <ChevronRight className="w-4 h-4 text-neutral-600" />
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
                 </motion.button>
               ))
             )}
@@ -330,15 +330,15 @@ export default function ClockTokenPage() {
   // Staff Detail + Clock In/Out
   if (step === "detail" && selectedStaff) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex flex-col">
-        <header className="bg-neutral-900 border-b border-neutral-800 px-4 py-4 shrink-0">
+      <div className="min-h-screen bg-background flex flex-col">
+        <header className="bg-card border-b border-border px-4 py-4 shrink-0">
           <div className="max-w-lg mx-auto flex items-center gap-3">
             <button onClick={() => { setSelectedStaff(null); setStep("list"); setResult(null); }}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-neutral-800 hover:bg-neutral-700 transition-colors">
-              <ChevronRight className="w-5 h-5 rotate-180 text-neutral-300" />
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-muted hover:bg-muted/80 transition-colors">
+              <ChevronRight className="w-5 h-5 rotate-180 text-foreground" />
             </button>
             <div>
-              <h1 className="text-sm font-black tracking-tight uppercase text-white">{hotel.name}</h1>
+              <h1 className="text-sm font-black tracking-tight uppercase text-foreground">{hotel.name}</h1>
               <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-orange-500">Staff Clock</p>
             </div>
           </div>
@@ -346,14 +346,14 @@ export default function ClockTokenPage() {
 
         <main className="flex-1 flex items-center justify-center p-6">
           <div className="w-full max-w-sm text-center">
-            <div className="w-20 h-20 rounded-2xl bg-neutral-800 flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl font-black text-white">{(selectedStaff.name || "?")[0]?.toUpperCase()}</span>
+            <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl font-black text-foreground">{(selectedStaff.name || "?")[0]?.toUpperCase()}</span>
             </div>
-            <h2 className="text-2xl font-black tracking-tighter uppercase text-white mb-1">{selectedStaff.name || "Staff"}</h2>
-            <div className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 ${ROLE_COLORS[selectedStaff.role] || "bg-neutral-800 text-neutral-400"}`}>
+            <h2 className="text-2xl font-black tracking-tighter uppercase text-foreground mb-1">{selectedStaff.name || "Staff"}</h2>
+            <div className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 ${ROLE_COLORS[selectedStaff.role] || "bg-muted text-muted-foreground"}`}>
               {ROLE_LABELS[selectedStaff.role] || selectedStaff.role}
             </div>
-            <p className="text-[10px] font-bold text-neutral-600 font-mono mb-10">{selectedStaff.userId.slice(0, 8)}...</p>
+            <p className="text-[10px] font-bold text-muted-foreground font-mono mb-10">{selectedStaff.userId.slice(0, 8)}...</p>
 
             <div className="grid grid-cols-2 gap-4">
               <button
@@ -369,11 +369,11 @@ export default function ClockTokenPage() {
               <button
                 onClick={() => clockMutation.mutate({ action: "out", id: selectedStaff.name || selectedStaff.userId })}
                 disabled={clockMutation.isPending}
-                className="bg-neutral-900 border-2 border-neutral-700 hover:border-red-500 text-white rounded-2xl py-8 px-6 transition-all active:scale-[0.97] disabled:opacity-50"
+                className="bg-card border-2 border-border hover:border-red-500 text-foreground rounded-2xl py-8 px-6 transition-all active:scale-[0.97] disabled:opacity-50"
               >
                 <div className="flex flex-col items-center gap-3">
-                  {clockMutation.isPending ? <Loader2 className="w-10 h-10 animate-spin text-red-500" /> : <LogOut className="w-10 h-10 text-neutral-400" />}
-                  <span className="text-xs font-black uppercase tracking-[0.2em] text-neutral-400">Clock Out</span>
+                  {clockMutation.isPending ? <Loader2 className="w-10 h-10 animate-spin text-red-500" /> : <LogOut className="w-10 h-10 text-muted-foreground" />}
+                  <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Clock Out</span>
                 </div>
               </button>
             </div>

@@ -95,7 +95,7 @@ export default function KitchenTokenPage() {
         const now = Date.now();
         return prev.filter((o) => {
           if (o.status !== "served") return true;
-          return now - new Date(o.created_at).getTime() < 120000;
+          return now - new Date(o.created_at).getTime() < 300000;
         });
       });
     }, 10000);
@@ -212,7 +212,7 @@ export default function KitchenTokenPage() {
   // --- Loading ---
   if (hotelLoading || step === "hotel") {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
       </div>
     );
@@ -221,13 +221,13 @@ export default function KitchenTokenPage() {
   // --- Not found ---
   if (hotelError || !hotel) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <div className="text-center space-y-4">
           <div className="w-20 h-20 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto">
             <AlertCircle className="w-10 h-10 text-red-500" />
           </div>
-          <h2 className="text-xl font-black uppercase tracking-tight text-white">Link Invalid</h2>
-          <p className="text-xs text-neutral-500 font-bold uppercase tracking-widest">This kitchen link is invalid or revoked</p>
+          <h2 className="text-xl font-black uppercase tracking-tight text-foreground">Link Invalid</h2>
+          <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">This kitchen link is invalid or revoked</p>
         </div>
       </div>
     );
@@ -236,16 +236,16 @@ export default function KitchenTokenPage() {
   // --- PIN Entry ---
   if (step === "pin") {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <h1 className="text-xl font-black text-white uppercase tracking-tight">{hotel.name}</h1>
-            <p className="text-xs text-neutral-500 mt-1 uppercase tracking-widest font-bold">Kitchen Display</p>
+            <h1 className="text-xl font-black text-foreground uppercase tracking-tight">{hotel.name}</h1>
+            <p className="text-xs text-muted-foreground mt-1 uppercase tracking-widest font-bold">Kitchen Display</p>
           </div>
 
           <div className="space-y-4">
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 block mb-2">Enter PIN</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-2">Enter PIN</label>
               <input
                 type="password"
                 value={pin}
@@ -254,7 +254,7 @@ export default function KitchenTokenPage() {
                 placeholder="Enter kitchen PIN"
                 maxLength={6}
                 autoFocus
-                className="w-full bg-neutral-900 border border-neutral-800 rounded-xl py-3 px-4 text-sm text-white placeholder:text-neutral-600 focus:outline-none focus:border-orange-500 tracking-[0.5em] font-mono text-center text-lg"
+                className="w-full bg-card border border-border rounded-xl py-3 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-orange-500 tracking-[0.5em] font-mono text-center text-lg"
               />
             </div>
 
@@ -311,24 +311,24 @@ export default function KitchenTokenPage() {
   const isLessThan20s = (time: string) => Date.now() - new Date(time).getTime() < 20000;
 
   return (
-    <div className="min-h-screen bg-neutral-950 flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800 shrink-0">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 bg-orange-500 rounded-xl flex items-center justify-center">
             <ChefHat className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-sm font-black uppercase tracking-tight text-white">{hotelData?.hotelName}</h1>
-            <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">Kitchen Display</p>
+            <h1 className="text-sm font-black uppercase tracking-tight text-foreground">{hotelData?.hotelName}</h1>
+            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Kitchen Display</p>
           </div>
-          <span className="text-[9px] font-black uppercase tracking-widest text-neutral-500 bg-neutral-800 px-2 py-1 rounded-md ml-2">
+          <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground bg-muted px-2 py-1 rounded-md ml-2">
             {newOrders.length + preparing.length + ready.length}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={() => setSoundEnabled(!soundEnabled)}
-            className={cn("w-9 h-9 rounded-lg flex items-center justify-center transition-colors", soundEnabled ? "bg-orange-500/10 text-orange-500" : "bg-neutral-800 text-neutral-500")}>
+            className={cn("w-9 h-9 rounded-lg flex items-center justify-center transition-colors", soundEnabled ? "bg-orange-500/10 text-orange-500" : "bg-muted text-muted-foreground")}>
             {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
         </div>
@@ -341,7 +341,7 @@ export default function KitchenTokenPage() {
             <div className={cn("flex items-center gap-2 px-4 py-2.5 rounded-lg mb-3", col.bg, "border", col.border)}>
               <div className={cn("w-2 h-2 rounded-full", col.dot)} />
               <span className={cn("text-xs font-black uppercase tracking-widest", col.color)}>{col.label}</span>
-              <span className="ml-auto text-xs font-black text-neutral-600">{col.orders.length}</span>
+              <span className="ml-auto text-xs font-black text-muted-foreground">{col.orders.length}</span>
             </div>
 
             <div className="flex-1 space-y-2 overflow-y-auto pr-1">
@@ -358,14 +358,14 @@ export default function KitchenTokenPage() {
                       animate={{ opacity: 1, scale: 1, x: 0 }}
                       exit={{ opacity: 0, scale: 0.95, x: 50 }}
                       className={cn(
-                        "bg-neutral-900 rounded-lg border border-neutral-800 shadow-sm",
+                        "bg-card rounded-lg border border-border shadow-sm",
                         isNew && "border-l-2 border-l-orange-500"
                       )}
                     >
                       <div className="p-3">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <span className={cn("text-base font-black text-white", isNew && "animate-pulse")}>
+                            <span className={cn("text-base font-black text-foreground", isNew && "animate-pulse")}>
                               Table {order.tableNumber || "?"}
                             </span>
                           </div>
@@ -374,13 +374,13 @@ export default function KitchenTokenPage() {
 
                         <div className="flex flex-wrap gap-1.5 mb-2">
                           {order.items?.map((item, idx) => (
-                            <span key={idx} className="inline-flex items-center gap-1 bg-neutral-800 text-neutral-300 px-2 py-0.5 rounded text-[11px] font-bold">
+                            <span key={idx} className="inline-flex items-center gap-1 bg-muted text-foreground px-2 py-0.5 rounded text-[11px] font-bold">
                               <span className="text-orange-500">{item.quantity}x</span>
                               {item.name || `Item ${idx + 1}`}
                             </span>
                           ))}
                           {!order.items?.length && (
-                            <span className="text-[11px] text-neutral-600 italic">Loading...</span>
+                            <span className="text-[11px] text-muted-foreground italic">Loading...</span>
                           )}
                         </div>
 
@@ -412,11 +412,11 @@ export default function KitchenTokenPage() {
               </AnimatePresence>
 
               {col.orders.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <div className="w-8 h-8 rounded-full bg-neutral-800 flex items-center justify-center mb-2">
-                    <CheckCircle2 className="w-4 h-4 text-neutral-700" />
+                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center mb-2">
+                    <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
                   </div>
-                  <p className="text-[9px] font-bold text-neutral-600 uppercase tracking-widest">
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
                     {col.label === "New" ? "All clear" : "Empty"}
                   </p>
                 </div>
