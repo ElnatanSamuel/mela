@@ -192,7 +192,7 @@ export default function PromoCodeManager() {
         </button>
       </div>
 
-      <div className="bg-card border border-border rounded-[6px] overflow-hidden shadow-sm dark:shadow-black/10">
+      <div className="bg-card border border-border rounded-[6px] overflow-visible shadow-sm dark:shadow-black/10">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border bg-muted">
@@ -422,28 +422,58 @@ export default function PromoCodeManager() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4">
             <div>
               <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-1">
                 Valid From
               </label>
-              <input
-                type="datetime-local"
-                value={validFrom}
-                onChange={(e) => setValidFrom(e.target.value)}
-                className="w-full bg-muted border border-border rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-foreground"
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="date"
+                  value={validFrom ? validFrom.split("T")[0] || validFrom.slice(0, 10) : ""}
+                  onChange={(e) => {
+                    const date = e.target.value;
+                    const time = validFrom?.split("T")[1] || "00:00";
+                    setValidFrom(`${date}T${time}`);
+                  }}
+                  className="w-full bg-muted border border-border rounded-[4px] px-3 py-3 text-xs font-bold focus:outline-none focus:border-foreground"
+                />
+                <input
+                  type="time"
+                  value={validFrom?.split("T")[1] || ""}
+                  onChange={(e) => {
+                    const date = validFrom?.split("T")[0] || "";
+                    setValidFrom(`${date}T${e.target.value}`);
+                  }}
+                  className="w-full bg-muted border border-border rounded-[4px] px-3 py-3 text-xs font-bold focus:outline-none focus:border-foreground"
+                />
+              </div>
             </div>
             <div>
               <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-1">
                 Valid Until
               </label>
-              <input
-                type="datetime-local"
-                value={validUntil}
-                onChange={(e) => setValidUntil(e.target.value)}
-                className="w-full bg-muted border border-border rounded-[4px] px-4 py-3 text-xs font-bold focus:outline-none focus:border-foreground"
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="date"
+                  value={validUntil ? validUntil.split("T")[0] || validUntil.slice(0, 10) : ""}
+                  onChange={(e) => {
+                    const date = e.target.value;
+                    const time = validUntil?.split("T")[1] || "23:59";
+                    setValidUntil(`${date}T${time}`);
+                  }}
+                  className="w-full bg-muted border border-border rounded-[4px] px-3 py-3 text-xs font-bold focus:outline-none focus:border-foreground"
+                />
+                <input
+                  type="time"
+                  value={validUntil?.split("T")[1] || ""}
+                  onChange={(e) => {
+                    const date = validUntil?.split("T")[0] || "";
+                    setValidUntil(`${date}T${e.target.value}`);
+                  }}
+                  className="w-full bg-muted border border-border rounded-[4px] px-3 py-3 text-xs font-bold focus:outline-none focus:border-foreground"
+                />
+              </div>
             </div>
           </div>
 

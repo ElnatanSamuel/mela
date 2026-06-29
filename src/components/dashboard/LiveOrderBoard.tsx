@@ -47,6 +47,10 @@ export default function LiveOrderBoard({
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [refundOrderId, setRefundOrderId] = useState<string | null>(null);
   const [refundReason, setRefundReason] = useState("");
+  const [confirmPaymentOrder, setConfirmPaymentOrder] = useState<Order | null>(null);
+  const [paymentOrderItems, setPaymentOrderItems] = useState<any[] | null>(null);
+  const [paymentOrderDetails, setPaymentOrderDetails] = useState<any | null>(null);
+  const [isFetchingItems, setIsFetchingItems] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -280,7 +284,20 @@ export default function LiveOrderBoard({
                   )}
                   {role !== "waiter" && needsPayment && (
                     <button
-                      onClick={() => verifyPaymentMutation.mutate({ id: order.id })}
+                      onClick={async () => {
+                        setConfirmPaymentOrder(order);
+                        setIsFetchingItems(true);
+                        try {
+                          const res = await fetch(`/api/guest/orders/${order.id}`);
+                          const data = await res.json();
+                          setPaymentOrderItems(data.items || []);
+                          setPaymentOrderDetails(data);
+                        } catch {
+                          setPaymentOrderItems([]);
+                          setPaymentOrderDetails(null);
+                        }
+                        setIsFetchingItems(false);
+                      }}
                       disabled={isVerifying}
                       className="w-full bg-green-600 text-white font-black py-3 rounded-[6px] hover:bg-green-700 transition-all flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest disabled:opacity-50 shadow-lg"
                     >
@@ -423,6 +440,152 @@ export default function LiveOrderBoard({
                   Cancel
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Payment Receipt Modal */}
+      {confirmPaymentOrder && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => { setConfirmPaymentOrder(null); setPaymentOrderItems(null); }}>
+          <div className="bg-white w-full max-w-lg shadow-xl rounded-[6px] overflow-hidden max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6 border-b border-stone-200 flex items-center justify-between bg-stone-50 shrink-0">
+              <div>
+                <h3 className="text-sm font-black text-stone-900 uppercase tracking-widest">
+                  {confirmPaymentOrder.order_type === "digital" ? "Confirm Payment" : "Verify Payment"}
+                </h3>
+                <p className="text-[9px] font-bold text-stone-400 uppercase tracking-widest mt-0.5">
+                  Table {confirmPaymentOrder.tableNumber || "—"} &middot; #{confirmPaymentOrder.id.slice(0, 6)}
+                </p>
+              </div>
+              <button
+                onClick={() => { setConfirmPaymentOrder(null); setPaymentOrderItems(null); }}
+                className="p-1 hover:bg-stone-200 rounded transition-colors"
+              >
+                <X className="w-4 h-4 text-stone-600" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {isFetchingItems ? (
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="w-6 h-6 text-stone-300 animate-spin" />
+                </div>
+              ) : paymentOrderItems && paymentOrderItems.length > 0 ? (
+                <>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-[9px] text-stone-400 font-bold uppercase tracking-widest">
+                      <span>Item</span>
+                      <div className="flex gap-6">
+                        <span>Qty</span>
+                        <span>Total</span>
+                      </div>
+                    </div>
+                    {paymentOrderItems.map((item: any, i: number) => (
+                      <div key={i}>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-stone-900 font-bold flex-1 truncate mr-2">{item.name}</span>
+                          <span className="text-stone-400 w-8 text-center">{item.quantity}</span>
+                          <span className="text-stone-900 font-bold w-16 text-right">
+                            {(parseFloat(item.unitPrice) * item.quantity).toLocaleString()}
+                          </span>
+                        </div>
+                        {item.modifiers?.map((m: any, j: number) => (
+                          <div key={j} className="flex justify-between text-[10px] text-stone-400 pl-2 ml-0">
+                            <span>+ {m.name}</span>
+                            <span>{m.priceDelta > 0 ? `+${m.priceDelta}` : ""}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="border-t border-dashed border-stone-200" />
+
+                  {paymentOrderDetails?.order && (
+                    <div className="space-y-2">
+                      {(() => {
+                        const o = paymentOrderDetails.order;
+                        const sub = paymentOrderItems.reduce((sum: number, item: any) => {
+                          const base = parseFloat(item.unitPrice) * item.quantity;
+                          const mods = (item.modifiers || []).reduce((s: number, m: any) => s + m.priceDelta, 0) * item.quantity;
+                          return sum + base + mods;
+                        }, 0);
+                        const vat = parseFloat(o.vatAmount || "0");
+                        const svc = parseFloat(o.serviceCharge || "0");
+                        const disc = parseFloat(o.discountAmount || "0");
+                        const tip = parseFloat(o.tipAmount || "0");
+                        return (
+                          <>
+                            <div className="flex justify-between text-[10px] text-stone-400">
+                              <span>Subtotal</span>
+                              <span>{sub.toLocaleString()}</span>
+                            </div>
+                            {vat > 0 && (
+                              <div className="flex justify-between text-[10px] text-stone-400">
+                                <span>VAT</span>
+                                <span>{vat.toLocaleString()}</span>
+                              </div>
+                            )}
+                            {svc > 0 && (
+                              <div className="flex justify-between text-[10px] text-stone-400">
+                                <span>Service</span>
+                                <span>{svc.toLocaleString()}</span>
+                              </div>
+                            )}
+                            {disc > 0 && (
+                              <div className="flex justify-between text-[10px] text-green-600">
+                                <span>Discount</span>
+                                <span>-{disc.toLocaleString()}</span>
+                              </div>
+                            )}
+                            {tip > 0 && (
+                              <div className="flex justify-between text-[10px] text-stone-400">
+                                <span>Tip</span>
+                                <span>{tip.toLocaleString()}</span>
+                              </div>
+                            )}
+                            <div className="border-t-2 border-stone-900 pt-2 flex justify-between">
+                              <span className="text-sm font-black text-stone-900 uppercase">Total</span>
+                              <span className="text-sm font-black text-stone-900">{parseFloat(o.totalAmount).toLocaleString()} ETB</span>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-10 text-xs text-stone-400">
+                  No items found
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-stone-200 space-y-2 shrink-0">
+              <button
+                onClick={() => {
+                  verifyPaymentMutation.mutate({ id: confirmPaymentOrder.id });
+                  setConfirmPaymentOrder(null);
+                  setPaymentOrderItems(null);
+                }}
+                disabled={verifyPaymentMutation.isPending || isFetchingItems}
+                className="w-full bg-green-600 text-white py-4 rounded-[6px] text-[10px] font-black uppercase tracking-widest hover:bg-green-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {verifyPaymentMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <DollarSign className="w-4 h-4" />
+                    {confirmPaymentOrder.order_type === "digital" ? "Confirm Payment" : "Mark as Paid"}
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => { setConfirmPaymentOrder(null); setPaymentOrderItems(null); }}
+                className="w-full py-4 border border-stone-200 text-stone-400 text-[10px] font-black uppercase tracking-widest hover:text-stone-900 transition-all rounded-[6px]"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

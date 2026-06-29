@@ -47,6 +47,8 @@ export default async function GuestPage({ params }: GuestPageProps) {
     id: "00000000-0000-0000-0000-000000000000",
   };
 
+  const settings = (hotel.settings as { vatRate?: number; serviceChargeRate?: number }) || { vatRate: 0.15, serviceChargeRate: 0.10 };
+
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900">
       {/* Hero Banner */}
@@ -95,7 +97,7 @@ export default async function GuestPage({ params }: GuestPageProps) {
 
       {/* Menu Content */}
       <main className="max-w-2xl mx-auto px-4">
-        <GuestMenu hotelId={hotel.id} tableId={displayTable.id} hotelName={hotel.name} hotelSlug={hotelSlug} />
+        <GuestMenu hotelId={hotel.id} tableId={displayTable.id} hotelName={hotel.name} hotelSlug={hotelSlug} vatRate={settings?.vatRate || 0.15} serviceChargeRate={settings?.serviceChargeRate || 0.10} />
       </main>
 
       {/* Footer */}

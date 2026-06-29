@@ -40,6 +40,8 @@ interface GuestMenuProps {
   tableId: string;
   hotelName: string;
   hotelSlug: string;
+  vatRate?: number;
+  serviceChargeRate?: number;
 }
 
 interface MenuItem {
@@ -91,7 +93,7 @@ interface Combo {
   savings: number;
 }
 
-export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug }: GuestMenuProps) {
+export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug, vatRate = 0.15, serviceChargeRate = 0.10 }: GuestMenuProps) {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [cart, setCart] = useState<Record<string, CartEntry>>({});
@@ -113,6 +115,7 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug }: Gu
   const [currentOrderTotal, setCurrentOrderTotal] = useState<string | null>(null);
   const [currentOrderPaymentType, setCurrentOrderPaymentType] = useState<string | null>(null);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [currentPaymentStatus, setCurrentPaymentStatus] = useState<string | null>(null);
 
   const fasting = useMemo(() => getFastingState(), []);
 
@@ -168,11 +171,23 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug }: Gu
 
   useEffect(() => {
     if (!activeOrderId) return;
+    // Fetch initial order data
+    fetch(`/api/guest/orders/${activeOrderId}`)
+      .then(r => r.json())
+      .then(d => {
+        setOrderStatus(d.order?.status || "pending");
+        setCurrentPaymentStatus(d.order?.paymentStatus || null);
+        setCurrentOrderTotal(d.order?.totalAmount || null);
+        setCurrentOrderPaymentType(d.order?.orderType || null);
+      })
+      .catch(() => {});
     const channel = supabase
       .channel(`order-${activeOrderId}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${activeOrderId}` }, (payload) => {
         const newStatus = payload.new.status;
+        const newPaymentStatus = payload.new.paymentStatus;
         setOrderStatus(newStatus);
+        if (newPaymentStatus) setCurrentPaymentStatus(newPaymentStatus);
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -184,6 +199,16 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug }: Gu
       setShowReceipt(true);
     }
   }, [orderStatus, activeOrderId, currentOrderPaymentType]);
+
+  // Auto-show order tracking when redirected from payment success
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const oid = params.get("orderId");
+    if (oid && !activeOrderId) {
+      setActiveOrderId(oid);
+      setShowReceipt(false);
+    }
+  }, []);
 
   const placeOrderMutation = useMutation({
     mutationFn: async (paymentMethod: "digital" | "cash") => {
@@ -215,7 +240,7 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug }: Gu
           const chapaRes = await fetch("/api/pay/chapa", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ amount: parseFloat(data.totalAmount), txRef, firstName: "Guest", hotelName }),
+            body: JSON.stringify({ amount: parseFloat(data.totalAmount), txRef, firstName: "Guest", hotelName, orderId: data.id }),
           });
           const chapaData = await chapaRes.json();
           if (chapaData.checkoutUrl) {
@@ -271,7 +296,7 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug }: Gu
       const chapaRes = await fetch("/api/pay/chapa", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: parseFloat(currentOrderTotal), txRef, firstName: "Guest", hotelName }),
+        body: JSON.stringify({ amount: parseFloat(currentOrderTotal), txRef, firstName: "Guest", hotelName, orderId: activeOrderId }),
       });
       const chapaData = await chapaRes.json();
       if (!chapaData.checkoutUrl) throw new Error(chapaData.error || "Chapa init failed");
@@ -322,7 +347,9 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug }: Gu
   }, 0);
 
   const discountAmount = appliedPromo?.discount || 0;
-  const cartTotal = Math.max(0, cartSubtotal - discountAmount + selectedTip);
+  const vatAmount = cartSubtotal * vatRate;
+  const serviceAmount = cartSubtotal * serviceChargeRate;
+  const cartTotal = Math.max(0, cartSubtotal + vatAmount + serviceAmount - discountAmount + selectedTip);
 
   const sortedItems = useMemo(() => {
     if (!fasting.isFastingDay) return liveItems;
@@ -418,23 +445,25 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug }: Gu
           )}
 
           <div className="space-y-3">
-            {orderStatus === "served" && currentOrderPaymentType === "cash" && (
+            {orderStatus === "served" && (
               <>
-                <button onClick={() => setShowReceipt(true)} className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-2 shadow-lg">
-                  <Receipt className="w-4 h-4" />
-                  Pay at Counter
-                </button>
-                <button onClick={() => payNowMutation.mutate()} disabled={payNowMutation.isPending} className="w-full bg-stone-100 text-stone-900 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-50">
-                  {payNowMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Pay with Chapa"}
-                </button>
+                {currentOrderPaymentType === "cash" ? (
+                  <button onClick={() => setShowReceipt(true)} className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-2 shadow-lg">
+                    <Receipt className="w-4 h-4" />
+                    Pay at Counter
+                  </button>
+                ) : (
+                  <button onClick={() => setShowReceipt(true)} className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-2 shadow-lg">
+                    <Receipt className="w-4 h-4" />
+                    View Receipt
+                  </button>
+                )}
+                {currentPaymentStatus !== "paid" && (
+                  <button onClick={() => payNowMutation.mutate()} disabled={payNowMutation.isPending} className="w-full bg-stone-100 text-stone-900 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-50">
+                    {payNowMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Pay with Chapa"}
+                  </button>
+                )}
               </>
-            )}
-
-            {orderStatus === "served" && currentOrderPaymentType !== "cash" && (
-              <button onClick={() => setShowReceipt(true)} className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-2 shadow-lg">
-                <Receipt className="w-4 h-4" />
-                View Receipt
-              </button>
             )}
 
             <button onClick={() => setActiveOrderId(null)} className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform">
@@ -807,6 +836,14 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug }: Gu
                   <div className="flex justify-between text-xs text-stone-400">
                     <span>Subtotal</span>
                     <span className="font-bold">{formatCurrency(cartSubtotal.toString())}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-stone-400">
+                    <span>VAT ({(vatRate * 100).toFixed(0)}%)</span>
+                    <span className="font-bold">{formatCurrency(vatAmount.toFixed(2))}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-stone-400">
+                    <span>Service ({(serviceChargeRate * 100).toFixed(0)}%)</span>
+                    <span className="font-bold">{formatCurrency(serviceAmount.toFixed(2))}</span>
                   </div>
                   {discountAmount > 0 && (
                     <div className="flex justify-between text-xs text-green-600">
