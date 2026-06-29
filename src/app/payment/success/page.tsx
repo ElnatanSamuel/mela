@@ -29,25 +29,41 @@ function PaymentContent() {
     setOrderId(pending.orderId);
 
     const verifyAndConfirm = async () => {
-      try {
-        const verifyRes = await fetch(`/api/pay/chapa/verify?tx_ref=${txRef}`);
-        const verifyData = await verifyRes.json();
+      const maxRetries = 5;
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const verifyRes = await fetch(`/api/pay/chapa/verify?tx_ref=${txRef}`);
+          const verifyData = await verifyRes.json();
+          console.log(`[PaymentSuccess] Verify attempt ${attempt + 1}:`, JSON.stringify(verifyData, null, 2));
 
-        if (verifyData.verified && verifyData.status === "success") {
-          await fetch("/api/pay/chapa/confirm", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ orderId: pending.orderId, txRef }),
-          });
-          setStatus("success");
-        } else {
-          setStatus("failed");
+          if (verifyData.verified && verifyData.status === "success") {
+            const confirmRes = await fetch("/api/pay/chapa/confirm", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ orderId: pending.orderId, txRef }),
+            });
+            const confirmData = await confirmRes.json();
+            console.log(`[PaymentSuccess] Confirm attempt ${attempt + 1}:`, JSON.stringify(confirmData, null, 2));
+            if (confirmRes.ok) {
+              setStatus("success");
+              sessionStorage.removeItem("mela-pending-order");
+              return;
+            }
+          }
+
+          if (attempt < maxRetries - 1) {
+            console.log(`[PaymentSuccess] Retrying in 3s (attempt ${attempt + 1}/${maxRetries})...`);
+            await new Promise(r => setTimeout(r, 3000));
+          }
+        } catch (err) {
+          console.error(`[PaymentSuccess] Error attempt ${attempt + 1}:`, err);
+          if (attempt < maxRetries - 1) {
+            await new Promise(r => setTimeout(r, 3000));
+          }
         }
-
-        sessionStorage.removeItem("mela-pending-order");
-      } catch {
-        setStatus("failed");
       }
+      setStatus("failed");
+      sessionStorage.removeItem("mela-pending-order");
     };
 
     verifyAndConfirm();

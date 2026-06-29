@@ -40,21 +40,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, message: "Already confirmed" });
     }
 
-    // Update order payment status
     console.log("[Chapa Confirm] Confirming order", orderId, "as paid");
     await db
       .update(orders)
       .set({ paymentStatus: "paid" })
       .where(eq(orders.id, orderId));
 
-    await db.insert(transactions).values({
-      orderId,
-      hotelId: order.hotelId,
-      amount: order.totalAmount,
-      paymentMethod: "chapa",
-      providerReference: verifyData.data?.ref_id || txRef,
-      status: "success",
-    });
+    // Check if transaction already exists before inserting (idempotent)
+    const providerRef = verifyData.data?.ref_id || txRef;
+    const [existingTx] = await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.providerReference, providerRef))
+      .limit(1);
+
+    if (!existingTx) {
+      await db.insert(transactions).values({
+        orderId,
+        hotelId: order.hotelId,
+        amount: order.totalAmount,
+        paymentMethod: "chapa",
+        providerReference: providerRef,
+        status: "success",
+      });
+      console.log("[Chapa Confirm] Transaction recorded for order", orderId);
+    } else {
+      console.log("[Chapa Confirm] Transaction already exists for order", orderId, "- skipped");
+    }
 
     console.log("[Chapa Confirm] Done — order", orderId, "paid via confirm");
 

@@ -27,7 +27,9 @@ export async function GET(req: Request) {
     const data = await res.json();
     console.log("[Chapa Verify] Response for", txRef, ":", JSON.stringify(data, null, 2));
 
-    if (data.status !== "success") {
+    const verified = data.status === "success" && data.data?.status === "success";
+
+    if (!verified) {
       console.error("[Chapa Verify] Failed for tx_ref:", txRef, "response:", JSON.stringify(data, null, 2));
       return NextResponse.json({ verified: false, status: data.data?.status || "unknown" });
     }
