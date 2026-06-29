@@ -29,13 +29,26 @@ export async function GET(req: Request) {
       return new NextResponse("Payment not verified", { status: 400 });
     }
 
-    // Extract orderId from tx_ref (format: mela-{orderId}-{timestamp})
+    // Extract orderId from tx_ref (format: mel-{shortId}-{shortTs})
     const parts = trxRef.split("-");
-    const orderId = parts.length >= 3 ? parts.slice(1, -1).join("-") : null;
+    const shortId = parts.length >= 2 ? parts[1] : null;
 
-    if (!orderId) {
+    if (!shortId) {
       return new NextResponse("Invalid tx_ref format", { status: 400 });
     }
+
+    // Look up order by matching first 8 chars of UUID
+    const rows = await db.execute(
+      `SELECT id, hotel_id, total_amount, payment_status FROM orders WHERE id::text LIKE '${shortId}%' LIMIT 1`
+    );
+    const orderRow = rows?.[0] as { id: string; hotel_id: string; total_amount: string; payment_status: string } | undefined;
+    if (!orderRow) {
+      return new NextResponse("Order not found", { status: 404 });
+    }
+    const orderId = orderRow.id;
+    const hotelId = orderRow.hotel_id;
+    const totalAmount = orderRow.total_amount;
+    const paymentStatus = orderRow.payment_status;
 
     // Skip if already processed (idempotent)
     const [existingTx] = await db
@@ -47,13 +60,8 @@ export async function GET(req: Request) {
       return new NextResponse("Already processed", { status: 200 });
     }
 
-    const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
-    if (!order) {
-      return new NextResponse("Order not found", { status: 404 });
-    }
-
     // Skip if already paid
-    if (order.paymentStatus === "paid") {
+    if (paymentStatus === "paid") {
       return new NextResponse("Already paid", { status: 200 });
     }
 
@@ -66,8 +74,8 @@ export async function GET(req: Request) {
     // Record transaction
     await db.insert(transactions).values({
       orderId,
-      hotelId: order.hotelId,
-      amount: order.totalAmount,
+      hotelId,
+      amount: totalAmount,
       paymentMethod: "chapa",
       providerReference: refId || verifyData.data?.ref_id || trxRef,
       status: "success",

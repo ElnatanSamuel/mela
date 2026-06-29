@@ -45,8 +45,10 @@ export async function POST(req: Request) {
     const data = await res.json();
 
     if (data.status !== "success") {
-      console.error("Chapa init failed:", data);
-      return NextResponse.json({ error: data.message || "Payment initialization failed" }, { status: 400 });
+      console.error("Chapa init failed:", JSON.stringify(data, null, 2));
+      const errMsg = typeof data.message === "string" ? data.message
+        : data.message?.tx_ref?.[0] || data.message?.amount?.[0] || "Payment initialization failed";
+      return NextResponse.json({ error: errMsg }, { status: 400 });
     }
 
     return NextResponse.json({ checkoutUrl: data.data.checkout_url, txRef });

@@ -209,7 +209,9 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug }: Gu
       setCurrentOrderPaymentType(paymentMethod);
       if (paymentMethod === "digital") {
         try {
-          const txRef = `mela-${data.id}-${Date.now()}`;
+          const shortId = data.id.slice(0, 8);
+          const shortTs = Date.now().toString().slice(-8);
+          const txRef = `mel-${shortId}-${shortTs}`;
           const chapaRes = await fetch("/api/pay/chapa", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -263,7 +265,9 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug }: Gu
   const payNowMutation = useMutation({
     mutationFn: async () => {
       if (!activeOrderId || !currentOrderTotal) throw new Error("No order to pay");
-      const txRef = `mela-${activeOrderId}-${Date.now()}`;
+      const shortId = activeOrderId.slice(0, 8);
+      const shortTs = Date.now().toString().slice(-8);
+      const txRef = `mel-${shortId}-${shortTs}`;
       const chapaRes = await fetch("/api/pay/chapa", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
