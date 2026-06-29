@@ -28,7 +28,7 @@ function PaymentContent() {
     }
     setOrderId(pending.orderId);
 
-    const confirmPayment = async () => {
+    const verifyAndConfirm = async () => {
       try {
         const verifyRes = await fetch(`/api/pay/chapa/verify?tx_ref=${txRef}`);
         const verifyData = await verifyRes.json();
@@ -50,7 +50,7 @@ function PaymentContent() {
       }
     };
 
-    confirmPayment();
+    verifyAndConfirm();
   }, [txRef]);
 
   const backUrl = hotelSlug && tableId ? `/guest/${hotelSlug}/${tableId}` : "/";

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, ArrowLeft, Download } from "lucide-react";
+import { Loader2, Download } from "lucide-react";
 
 interface ReceiptItem {
   name: string;
@@ -66,10 +66,9 @@ export default function GuestReceipt({ orderId, onBack }: GuestReceiptProps) {
         {/* Back button */}
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-stone-400 mb-6 group"
+          className="text-stone-400 mb-6 text-xs font-bold uppercase tracking-widest hover:text-stone-900 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span className="text-xs font-bold uppercase tracking-widest">Back to Menu</span>
+          Back to Menu
         </button>
 
         {/* Receipt Card */}

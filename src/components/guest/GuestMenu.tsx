@@ -23,7 +23,6 @@ import {
   Leaf,
   Sparkles,
   Receipt,
-  ArrowLeft,
 } from "lucide-react";
 import { ServiceRequestButton } from "./ServiceRequestButton";
 import GuestReceipt from "./GuestReceipt";
@@ -362,30 +361,31 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug }: Gu
 
     return (
       <div className="px-4 py-6">
-        <div className="max-w-sm mx-auto text-center">
+        <div className="max-w-sm mx-auto">
           {/* Back to menu */}
           <button
             onClick={() => setActiveOrderId(null)}
-            className="flex items-center gap-2 text-stone-400 mb-8 mx-auto group"
+            className="text-stone-400 mb-8 block text-xs font-bold uppercase tracking-widest hover:text-stone-900 transition-colors"
           >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            <span className="text-xs font-bold uppercase tracking-widest">Back to Menu</span>
+            Back to Menu
           </button>
 
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-20 h-20 bg-stone-900 rounded-3xl flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="w-10 h-10 text-white" />
-          </motion.div>
+          <div className="text-center">
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-20 h-20 bg-stone-900 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <CheckCircle2 className="w-10 h-10 text-white" />
+            </motion.div>
 
-          <h2 className="text-2xl font-black text-stone-900 uppercase tracking-tight mb-2">
-            {orderStatus === "served" ? "Order Ready!" : orderStatus === "cancelled" ? "Order Cancelled" : "Order Placed"}
-          </h2>
-          <p className="text-sm text-stone-400 mb-10">
-            {orderStatus === "served"
-              ? "Your food is ready to enjoy"
-              : orderStatus === "cancelled"
-              ? "This order has been cancelled"
-              : "Sit tight, we're working on it"}
-          </p>
+            <h2 className="text-2xl font-black text-stone-900 uppercase tracking-tight mb-2">
+              {orderStatus === "served" ? "Order Ready!" : orderStatus === "cancelled" ? "Order Cancelled" : "Order Placed"}
+            </h2>
+            <p className="text-sm text-stone-400 mb-10">
+              {orderStatus === "served"
+                ? "Your food is ready to enjoy"
+                : orderStatus === "cancelled"
+                ? "This order has been cancelled"
+                : "Sit tight, we're working on it"}
+            </p>
+          </div>
 
           {orderStatus !== "cancelled" && (
             <div className="space-y-0 mb-10">
@@ -476,9 +476,9 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug }: Gu
 
   // --- Main Menu ---
   return (
-    <div className="px-4 pb-32">
+    <div className="pb-32">
       {/* Search */}
-      <div className="relative mb-4">
+      <div className="relative mb-6 mt-6">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300" />
         <input
           type="text"
@@ -490,7 +490,7 @@ export default function GuestMenu({ hotelId, tableId, hotelName, hotelSlug }: Gu
       </div>
 
       {/* Category Pills */}
-      <div className="flex gap-2 overflow-x-auto pb-1 mb-6 -mx-4 px-4" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+      <div className="flex gap-2 overflow-x-auto pb-1 mb-6" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         <div className="flex gap-2 shrink-0">
           <button
             onClick={() => setActiveCategory("all")}

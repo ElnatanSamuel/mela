@@ -37,7 +37,16 @@ export async function GET(req: Request) {
       return new NextResponse("Invalid tx_ref format", { status: 400 });
     }
 
-    // Get the order
+    // Skip if already processed (idempotent)
+    const [existingTx] = await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.providerReference, trxRef))
+      .limit(1);
+    if (existingTx) {
+      return new NextResponse("Already processed", { status: 200 });
+    }
+
     const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
     if (!order) {
       return new NextResponse("Order not found", { status: 404 });
@@ -45,16 +54,16 @@ export async function GET(req: Request) {
 
     // Skip if already paid
     if (order.paymentStatus === "paid") {
-      return new NextResponse("Already processed", { status: 200 });
+      return new NextResponse("Already paid", { status: 200 });
     }
 
-    // Update order payment status
+    // Mark as paid
     await db
       .update(orders)
       .set({ paymentStatus: "paid" })
       .where(eq(orders.id, orderId));
 
-    // Record real transaction
+    // Record transaction
     await db.insert(transactions).values({
       orderId,
       hotelId: order.hotelId,

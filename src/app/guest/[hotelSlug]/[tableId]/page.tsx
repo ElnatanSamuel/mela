@@ -63,27 +63,29 @@ export default async function GuestPage({ params }: GuestPageProps) {
         <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-stone-950/20 to-transparent" />
 
         {/* Hotel info overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-6">
-          <div className="max-w-2xl mx-auto flex items-end justify-between">
-            <div className="flex items-center gap-4">
-              {hotel.logoUrl && (
-                <div className="w-14 h-14 bg-white rounded-2xl p-2 shadow-2xl flex-shrink-0">
-                  <img
-                    src={hotel.logoUrl}
-                    alt={hotel.name}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-              )}
-              <div>
-                <h1 className="text-2xl font-black text-white uppercase tracking-tight leading-none">
-                  {hotel.name}
-                </h1>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-md text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                    Table {displayTable.tableNumber}
-                  </span>
+        <div className="absolute bottom-0 left-0 right-0">
+          <div className="max-w-2xl mx-auto px-6 pb-6">
+            <div className="flex items-end justify-between">
+              <div className="flex items-center gap-4">
+                {hotel.logoUrl && (
+                  <div className="w-14 h-14 bg-white rounded-2xl p-2 shadow-2xl flex-shrink-0">
+                    <img
+                      src={hotel.logoUrl}
+                      alt={hotel.name}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
+                <div className="pb-3">
+                  <h1 className="text-2xl font-black text-white uppercase tracking-tight leading-none">
+                    {hotel.name}
+                  </h1>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-md text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                      Table {displayTable.tableNumber}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -92,7 +94,7 @@ export default async function GuestPage({ params }: GuestPageProps) {
       </div>
 
       {/* Menu Content */}
-      <main className="max-w-2xl mx-auto -mt-10 relative z-10">
+      <main className="max-w-2xl mx-auto px-4">
         <GuestMenu hotelId={hotel.id} tableId={displayTable.id} hotelName={hotel.name} hotelSlug={hotelSlug} />
       </main>
 

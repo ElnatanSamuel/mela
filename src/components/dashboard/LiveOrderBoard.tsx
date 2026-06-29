@@ -179,7 +179,7 @@ export default function LiveOrderBoard({
   };
 
   const needsPaymentVerification = (order: Order) =>
-    order.payment_status === "unpaid" && order.order_type === "cash";
+    order.payment_status === "unpaid";
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -233,6 +233,11 @@ export default function LiveOrderBoard({
                         Cash
                       </span>
                     )}
+                    {order.order_type === "digital" && (
+                      <span className="text-[8px] font-black uppercase tracking-widest text-blue-600">
+                        Chapa
+                      </span>
+                    )}
                     {order.payment_status === "paid" && (
                       <span className="text-[8px] font-black uppercase tracking-widest text-green-600">
                         Paid
@@ -284,7 +289,7 @@ export default function LiveOrderBoard({
                       ) : (
                         <>
                           <DollarSign className="w-4 h-4" />
-                          Verify Payment
+                          {order.order_type === "digital" ? "Confirm Payment" : "Verify Payment"}
                         </>
                       )}
                     </button>
