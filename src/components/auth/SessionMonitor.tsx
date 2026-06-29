@@ -9,6 +9,10 @@ export default function SessionMonitor() {
   const registeredRef = useRef(false);
 
   useEffect(() => {
+    const pathname = window.location.pathname;
+    const isGuestPage = pathname.startsWith("/guest/") || pathname.startsWith("/auth/clock") || pathname.startsWith("/kitchen") || pathname.startsWith("/payment/");
+    if (isGuestPage) return;
+
     // Register session in DB on first load
     if (!registeredRef.current) {
       registeredRef.current = true;

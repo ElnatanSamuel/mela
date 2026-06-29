@@ -19,11 +19,7 @@ export async function POST() {
       .limit(1);
 
     if (existing.length > 0) {
-      await db
-        .update(hotelUsers)
-        .set({ role: "platform_admin" })
-        .where(eq(hotelUsers.userId, user.id));
-      return NextResponse.json({ role: "platform_admin", message: "Role updated to platform_admin" });
+      return NextResponse.json({ role: existing[0].role, message: "Existing role preserved" });
     }
 
     await db.insert(hotelUsers).values({

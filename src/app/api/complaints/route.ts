@@ -40,17 +40,26 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const { data: { user } } = await getSession();
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const role = await getUserRole();
-    if (!role?.hotelId) {
-      return NextResponse.json({ error: "No hotel found" }, { status: 404 });
-    }
-
     const body = await request.json();
-    const { message, tableId, orderId } = body;
+    const { message, tableId, orderId, hotelId: guestHotelId } = body;
+
+    let hotelId: string | null = null;
+    let userId: string | null = null;
+
+    if (user) {
+      // Authenticated user (dashboard)
+      const role = await getUserRole();
+      hotelId = role?.hotelId || null;
+      userId = user.id;
+    } else if (guestHotelId) {
+      // Guest submission (no auth, hotelId from request body)
+      hotelId = guestHotelId;
+      userId = null;
+    }
+
+    if (!hotelId) {
+      return NextResponse.json({ error: "Unauthorized or missing hotelId" }, { status: 401 });
+    }
 
     if (!message || typeof message !== "string" || !message.trim()) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
@@ -59,8 +68,8 @@ export async function POST(request: Request) {
     const data = await db
       .insert(complaints)
       .values({
-        hotelId: role.hotelId,
-        userId: user.id,
+        hotelId,
+        userId,
         message: message.trim(),
         tableId: tableId || null,
         orderId: orderId || null,

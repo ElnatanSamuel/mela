@@ -22,8 +22,11 @@ import {
   Flame,
   Leaf,
   Sparkles,
+  Receipt,
+  ArrowLeft,
 } from "lucide-react";
 import { ServiceRequestButton } from "./ServiceRequestButton";
+import GuestReceipt from "./GuestReceipt";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface PromoCodeResult {
@@ -109,6 +112,7 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
   const [complaintMessage, setComplaintMessage] = useState("");
   const [currentOrderTotal, setCurrentOrderTotal] = useState<string | null>(null);
   const [currentOrderPaymentType, setCurrentOrderPaymentType] = useState<string | null>(null);
+  const [showReceipt, setShowReceipt] = useState(false);
 
   const fasting = useMemo(() => getFastingState(), []);
 
@@ -167,11 +171,19 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
     const channel = supabase
       .channel(`order-${activeOrderId}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${activeOrderId}` }, (payload) => {
-        setOrderStatus(payload.new.status);
+        const newStatus = payload.new.status;
+        setOrderStatus(newStatus);
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [activeOrderId]);
+
+  // Auto-show receipt when cash order is served
+  useEffect(() => {
+    if (activeOrderId && orderStatus === "served" && currentOrderPaymentType === "cash") {
+      setShowReceipt(true);
+    }
+  }, [orderStatus, activeOrderId, currentOrderPaymentType]);
 
   const placeOrderMutation = useMutation({
     mutationFn: async (paymentMethod: "digital" | "cash") => {
@@ -206,10 +218,18 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
             window.location.href = chapaData.checkoutUrl;
             return;
           }
-        } catch (err) { console.error("Chapa init failed:", err); }
+          addToast(chapaData.error || "Payment gateway error. You can pay with cash.", "error");
+        } catch (err: any) {
+          console.error("Chapa init failed:", err);
+          addToast("Payment gateway unavailable. You can pay with cash.", "error");
+        }
       }
       setActiveOrderId(data.id);
       setOrderStatus(data.status);
+      // Auto-show receipt for cash orders when served
+      if (paymentMethod === "cash" && data.status === "served") {
+        setShowReceipt(true);
+      }
       setCart({});
       setAppliedPromo(null);
       setPromoCodeInput("");
@@ -229,7 +249,7 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
       const res = await fetch("/api/complaints", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, tableId, orderId: activeOrderId }),
+        body: JSON.stringify({ message, tableId, orderId: activeOrderId, hotelId }),
       });
       if (!res.ok) throw new Error("Failed to submit complaint");
       return res.json();
@@ -310,64 +330,109 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
     .map((cat) => ({ ...cat, items: filteredItems.filter((item) => item.categoryId === cat.id) }))
     .filter((group) => group.items.length > 0 || activeCategory === group.id);
 
+  // --- Receipt View ---
+  if (activeOrderId && showReceipt) {
+    return (
+      <GuestReceipt
+        orderId={activeOrderId}
+        onBack={() => setShowReceipt(false)}
+      />
+    );
+  }
+
   // --- Order Tracking View ---
   if (activeOrderId) {
     const steps = [
       { id: "pending", label: "Order Placed", sub: "We received your order" },
+      { id: "confirmed", label: "Accepted", sub: "Kitchen confirmed your order" },
       { id: "preparing", label: "Being Prepared", sub: "The kitchen is cooking" },
       { id: "served", label: "Ready", sub: "Enjoy your meal" },
     ];
-    const currentStepIdx = orderStatus === "pending" ? 0 : orderStatus === "preparing" ? 1 : 2;
+    const statusOrder = ["pending", "confirmed", "preparing", "served"];
+    const currentStepIdx = statusOrder.indexOf(orderStatus);
+    const normalizedIdx = currentStepIdx === -1 ? 0 : currentStepIdx;
 
     return (
-      <div className="px-4 py-12">
+      <div className="px-4 py-6">
         <div className="max-w-sm mx-auto text-center">
+          {/* Back to menu */}
+          <button
+            onClick={() => setActiveOrderId(null)}
+            className="flex items-center gap-2 text-stone-400 mb-8 mx-auto group"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span className="text-xs font-bold uppercase tracking-widest">Back to Menu</span>
+          </button>
+
           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-20 h-20 bg-stone-900 rounded-3xl flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 className="w-10 h-10 text-white" />
           </motion.div>
 
           <h2 className="text-2xl font-black text-stone-900 uppercase tracking-tight mb-2">
-            {orderStatus === "served" ? "Order Ready!" : "Order Placed"}
+            {orderStatus === "served" ? "Order Ready!" : orderStatus === "cancelled" ? "Order Cancelled" : "Order Placed"}
           </h2>
           <p className="text-sm text-stone-400 mb-10">
-            {orderStatus === "served" ? "Your food is ready to enjoy" : "Sit tight, we're working on it"}
+            {orderStatus === "served"
+              ? "Your food is ready to enjoy"
+              : orderStatus === "cancelled"
+              ? "This order has been cancelled"
+              : "Sit tight, we're working on it"}
           </p>
 
-          <div className="space-y-0 mb-10">
-            {steps.map((step, idx) => {
-              const isCompleted = idx < currentStepIdx || orderStatus === "served";
-              const isActive = idx === currentStepIdx;
-              return (
-                <div key={step.id} className="flex items-start gap-4 relative">
-                  {idx < steps.length - 1 && (
-                    <div className="absolute left-[15px] top-8 w-[2px] h-8">
-                      <div className={cn("w-full h-full transition-colors duration-500", isCompleted ? "bg-stone-900" : "bg-stone-200")} />
+          {orderStatus !== "cancelled" && (
+            <div className="space-y-0 mb-10">
+              {steps.map((step, idx) => {
+                const isCompleted = idx < normalizedIdx || orderStatus === "served";
+                const isActive = idx === normalizedIdx;
+                return (
+                  <div key={step.id} className="flex items-start gap-4 relative">
+                    {idx < steps.length - 1 && (
+                      <div className="absolute left-[15px] top-8 w-[2px] h-8">
+                        <div className={cn("w-full h-full transition-colors duration-500", isCompleted ? "bg-stone-900" : "bg-stone-200")} />
+                      </div>
+                    )}
+                    <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-500 z-10", isCompleted ? "bg-stone-900" : isActive ? "bg-stone-900 ring-4 ring-stone-100" : "bg-stone-200")}>
+                      {isCompleted && <CheckCircle2 className="w-4 h-4 text-white" />}
+                      {isActive && !isCompleted && <div className="w-2 h-2 bg-white rounded-full animate-pulse" />}
                     </div>
-                  )}
-                  <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-all duration-500 z-10", isCompleted ? "bg-stone-900" : isActive ? "bg-stone-900 ring-4 ring-stone-100" : "bg-stone-200")}>
-                    {isCompleted && <CheckCircle2 className="w-4 h-4 text-white" />}
-                    {isActive && !isCompleted && <div className="w-2 h-2 bg-white rounded-full animate-pulse" />}
+                    <div className="pb-8 pt-1">
+                      <p className={cn("text-sm font-bold transition-colors", isCompleted || isActive ? "text-stone-900" : "text-stone-300")}>{step.label}</p>
+                      <p className={cn("text-xs transition-colors", isCompleted || isActive ? "text-stone-400" : "text-stone-200")}>{step.sub}</p>
+                    </div>
                   </div>
-                  <div className="pb-8 pt-1">
-                    <p className={cn("text-sm font-bold transition-colors", isCompleted || isActive ? "text-stone-900" : "text-stone-300")}>{step.label}</p>
-                    <p className={cn("text-xs transition-colors", isCompleted || isActive ? "text-stone-400" : "text-stone-200")}>{step.sub}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {orderStatus === "served" && currentOrderPaymentType === "cash" && (
-            <button onClick={() => payNowMutation.mutate()} disabled={payNowMutation.isPending} className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-50">
-              {payNowMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Pay with Chapa Now"}
-            </button>
+                );
+              })}
+            </div>
           )}
-          <button onClick={() => setActiveOrderId(null)} className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform">
-            Order Again
-          </button>
-          <button onClick={() => setShowComplaintModal(true)} className="w-full text-stone-400 py-3 text-xs font-bold uppercase tracking-widest mt-2">
-            Report an Issue
-          </button>
+
+          <div className="space-y-3">
+            {orderStatus === "served" && currentOrderPaymentType === "cash" && (
+              <>
+                <button onClick={() => setShowReceipt(true)} className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-2 shadow-lg">
+                  <Receipt className="w-4 h-4" />
+                  Pay at Counter
+                </button>
+                <button onClick={() => payNowMutation.mutate()} disabled={payNowMutation.isPending} className="w-full bg-stone-100 text-stone-900 py-4 rounded-2xl text-xs font-bold uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-2 disabled:opacity-50">
+                  {payNowMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Pay with Chapa"}
+                </button>
+              </>
+            )}
+
+            {orderStatus === "served" && currentOrderPaymentType !== "cash" && (
+              <button onClick={() => setShowReceipt(true)} className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-2 shadow-lg">
+                <Receipt className="w-4 h-4" />
+                View Receipt
+              </button>
+            )}
+
+            <button onClick={() => setActiveOrderId(null)} className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform">
+              {orderStatus === "served" ? "Order Again" : "Back to Menu"}
+            </button>
+
+            <button onClick={() => setShowComplaintModal(true)} className="w-full text-stone-400 py-3 text-xs font-bold uppercase tracking-widest">
+              Report an Issue
+            </button>
+          </div>
 
           {showComplaintModal && (
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowComplaintModal(false)}>
@@ -404,17 +469,46 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
   // --- Main Menu ---
   return (
     <div className="px-4 pb-32">
-      {/* Search */}
-      <div className="mb-6">
-        <div className="relative">
+      {/* Search + Category Bar */}
+      <div className="sticky top-0 z-20 bg-stone-50/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4">
+        <div className="relative mb-3">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300" />
           <input
             type="text"
             placeholder="Search menu..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full bg-white border border-stone-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:outline-none focus:border-stone-400 transition-colors shadow-sm"
+            className="w-full bg-white border border-stone-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:outline-none focus:border-stone-900 focus:ring-2 focus:ring-stone-900/5 transition-all shadow-sm"
           />
+        </div>
+
+        {/* Category Pills */}
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+          <button
+            onClick={() => setActiveCategory("all")}
+            className={cn(
+              "px-5 py-2.5 rounded-full text-xs font-bold transition-all shrink-0 whitespace-nowrap",
+              activeCategory === "all"
+                ? "bg-stone-900 text-white shadow-lg shadow-stone-900/20"
+                : "bg-white text-stone-400 border border-stone-200 active:bg-stone-100"
+            )}
+          >
+            All
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setActiveCategory(cat.id)}
+              className={cn(
+                "px-5 py-2.5 rounded-full text-xs font-bold transition-all shrink-0 whitespace-nowrap",
+                activeCategory === cat.id
+                  ? "bg-stone-900 text-white shadow-lg shadow-stone-900/20"
+                  : "bg-white text-stone-400 border border-stone-200 active:bg-stone-100"
+              )}
+            >
+              {cat.name}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -462,37 +556,6 @@ export default function GuestMenu({ hotelId, tableId, hotelName }: GuestMenuProp
           </div>
         </div>
       )}
-
-      {/* Category Pills */}
-      <div className="mb-8 -mx-4 px-4">
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-          <button
-            onClick={() => setActiveCategory("all")}
-            className={cn(
-              "px-5 py-2.5 rounded-full text-xs font-bold transition-all shrink-0",
-              activeCategory === "all"
-                ? "bg-stone-900 text-white shadow-lg"
-                : "bg-white text-stone-400 border border-stone-200"
-            )}
-          >
-            All
-          </button>
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className={cn(
-                "px-5 py-2.5 rounded-full text-xs font-bold transition-all shrink-0",
-                activeCategory === cat.id
-                  ? "bg-stone-900 text-white shadow-lg"
-                  : "bg-white text-stone-400 border border-stone-200"
-              )}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Grouped Menu */}
       <div className="space-y-10">

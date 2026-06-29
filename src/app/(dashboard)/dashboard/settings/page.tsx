@@ -206,7 +206,7 @@ export default async function ManagerSettingsPage() {
             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Clock In PIN</label>
             <input
               name="clockPin"
-              type="text"
+              type="password"
               maxLength={6}
               defaultValue={settings.clockPin || "1234"}
               className="w-full p-4 border border-border rounded-[4px] text-xs font-bold tracking-[0.5em] font-mono focus:outline-none focus:border-foreground text-foreground bg-card"
@@ -216,7 +216,7 @@ export default async function ManagerSettingsPage() {
             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Kitchen Display PIN</label>
             <input
               name="kitchenPin"
-              type="text"
+              type="password"
               maxLength={6}
               defaultValue={settings.kitchenPin || "1234"}
               className="w-full p-4 border border-border rounded-[4px] text-xs font-bold tracking-[0.5em] font-mono focus:outline-none focus:border-foreground text-foreground bg-card"

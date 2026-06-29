@@ -19,6 +19,13 @@ export default function SessionManager() {
   const logoutTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const countdownRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
+  const isGuestPage = typeof window !== "undefined" && (
+    window.location.pathname.startsWith("/guest/") ||
+    window.location.pathname.startsWith("/auth/clock") ||
+    window.location.pathname.startsWith("/kitchen") ||
+    window.location.pathname.startsWith("/payment/")
+  );
+
   const forceLogout = useCallback(async () => {
     try { await supabase.auth.signOut(); } catch {}
     window.location.href = "/auth/login?reason=session_expired";
@@ -55,8 +62,9 @@ export default function SessionManager() {
     logoutTimerRef.current = setTimeout(forceLogout, INACTIVITY_TIMEOUT_MS);
   }, [forceLogout]);
 
-  // Track activity
+  // Track activity — skip entirely on guest/public pages
   useEffect(() => {
+    if (isGuestPage) return;
     const events = ["mousedown", "keydown", "scroll", "touchstart"];
     const handler = () => {
       const now = Date.now();
@@ -78,8 +86,9 @@ export default function SessionManager() {
     };
   }, [resetTimers]);
 
-  // Auto-refresh Supabase token periodically
+  // Auto-refresh Supabase token periodically — skip on guest/public pages
   useEffect(() => {
+    if (isGuestPage) return;
     const interval = setInterval(async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
