@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { userSessions } from "@/db/schema";
+import { userSessions, hotelUsers } from "@/db/schema";
 import { eq, and, gte } from "drizzle-orm";
 import { getSession } from "@/lib/auth-utils";
 
@@ -32,6 +32,17 @@ export async function POST(request: Request) {
     const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
     const userAgent = request.headers.get("user-agent") || null;
     const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0] || request.headers.get("x-real-ip") || null;
+
+    // Look up hotelId from user's role if not provided
+    let hotelId = body.hotelId || null;
+    if (!hotelId) {
+      const [roleEntry] = await db
+        .select({ hotelId: hotelUsers.hotelId })
+        .from(hotelUsers)
+        .where(eq(hotelUsers.userId, user.id))
+        .limit(1);
+      hotelId = roleEntry?.hotelId || null;
+    }
 
     const [session] = await db
       .insert(userSessions)

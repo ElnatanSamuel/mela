@@ -3,19 +3,14 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { formatCurrency, cn } from "@/lib/utils";
-import { useMutation } from "@tanstack/react-query";
 import {
   Clock,
   CheckCircle2,
-  Loader2,
-  ChevronRight,
-  AlertCircle,
-  Bell,
   Volume2,
   VolumeX,
+  Monitor,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useToastStore } from "@/lib/toast-store";
 
 interface OrderItem {
   menuItemId: string;
@@ -69,7 +64,6 @@ function TimeAgo({ time }: { time: string }) {
 export default function KitchenDisplay({ hotelId }: { hotelId: string }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const { addToast } = useToastStore();
   const prevOrderCount = React.useRef(orders.length);
 
   useEffect(() => {
@@ -130,46 +124,6 @@ export default function KitchenDisplay({ hotelId }: { hotelId: string }) {
     return () => clearInterval(id);
   }, [hotelId]);
 
-  const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const res = await fetch(`/api/orders/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Failed" }));
-        throw new Error(err.error || "Failed to update order");
-      }
-      return res.json();
-    },
-    onSuccess: (updated) => {
-      setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
-    },
-    onError: (error) => {
-      console.error("Kitchen status update failed:", error.message);
-      addToast(`Update failed: ${error.message}`, "error");
-    },
-  });
-
-  const getNextStatus = (s: string): string | null => {
-    const flow: Record<string, string> = {
-      pending: "confirmed",
-      confirmed: "preparing",
-      preparing: "served",
-    };
-    return flow[s] || null;
-  };
-
-  const getButtonLabel = (s: string): string => {
-    const labels: Record<string, string> = {
-      pending: "Accept",
-      confirmed: "Start Cooking",
-      preparing: "Ready to Serve",
-    };
-    return labels[s] || "";
-  };
-
   const pending = orders.filter((o) => o.status === "pending");
   const confirmed = orders.filter((o) => o.status === "confirmed");
   const preparing = orders.filter((o) => o.status === "preparing");
@@ -188,13 +142,17 @@ export default function KitchenDisplay({ hotelId }: { hotelId: string }) {
       <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 shrink-0">
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-black uppercase tracking-tight text-neutral-900 dark:text-white">
-            Kitchen Display
+            Kitchen Monitor
           </h1>
           <span className="text-[9px] font-black uppercase tracking-widest text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded-md">
             {pending.length + confirmed.length + preparing.length + ready.length} active
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-2 py-1 rounded-md">
+            <Monitor className="w-3 h-3" />
+            Read Only
+          </div>
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
             className={cn(
@@ -229,87 +187,46 @@ export default function KitchenDisplay({ hotelId }: { hotelId: string }) {
               <AnimatePresence mode="popLayout">
                 {col.orders
                   .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-                  .map((order) => {
-                    const next = getNextStatus(order.status);
-                    const isUpdating =
-                      updateStatusMutation.isPending &&
-                      updateStatusMutation.variables?.id === order.id;
+                  .map((order) => (
+                    <motion.div
+                      key={order.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95, x: 50 }}
+                      className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 shadow-sm"
+                    >
+                      {/* Order Header */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-black text-neutral-900 dark:text-white">
+                            Table {order.tableNumber || "?"}
+                          </span>
+                          <span className="text-[8px] font-bold text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">
+                            #{order.id.slice(0, 6)}
+                          </span>
+                        </div>
+                        <TimeAgo time={order.created_at} />
+                      </div>
 
-                    return (
-                      <motion.div
-                        key={order.id}
-                        layout
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95, x: 50 }}
-                        className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-4 shadow-sm"
-                      >
-                        {/* Order Header */}
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-black text-neutral-900 dark:text-white">
-                              Table {order.tableNumber || "?"}
+                      {/* Items */}
+                      <div className="space-y-1.5">
+                        {order.items?.map((item, idx) => (
+                          <div key={idx} className="flex items-center gap-2">
+                            <span className="text-xs font-black text-orange-500 w-5 text-right">
+                              {item.quantity}x
                             </span>
-                            <span className="text-[8px] font-bold text-neutral-400 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">
-                              #{order.id.slice(0, 6)}
+                            <span className="text-xs font-bold text-neutral-700 dark:text-neutral-300 truncate">
+                              {item.name || `Item ${idx + 1}`}
                             </span>
                           </div>
-                          <TimeAgo time={order.created_at} />
-                        </div>
-
-                        {/* Items */}
-                        <div className="space-y-1.5 mb-4">
-                          {order.items?.map((item, idx) => (
-                            <div key={idx} className="flex items-center gap-2">
-                              <span className="text-xs font-black text-orange-500 w-5 text-right">
-                                {item.quantity}x
-                              </span>
-                              <span className="text-xs font-bold text-neutral-700 dark:text-neutral-300 truncate">
-                                {item.name || `Item ${idx + 1}`}
-                              </span>
-                            </div>
-                          ))}
-                          {!order.items?.length && (
-                            <p className="text-xs text-neutral-400 italic">Loading items...</p>
-                          )}
-                        </div>
-
-                        {/* Action Button */}
-                        {next && (
-                          <button
-                            onClick={() =>
-                              updateStatusMutation.mutate({ id: order.id, status: next })
-                            }
-                            disabled={isUpdating}
-                            className={cn(
-                              "w-full py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-[0.98]",
-                              order.status === "pending"
-                                ? "bg-yellow-500 text-white shadow-lg shadow-yellow-500/20"
-                                : order.status === "confirmed"
-                                ? "bg-blue-500 text-white shadow-lg shadow-blue-500/20"
-                                : "bg-green-500 text-white shadow-lg shadow-green-500/20"
-                            )}
-                          >
-                            {isUpdating ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <>
-                                {getButtonLabel(order.status)}
-                                <ChevronRight className="w-4 h-4" />
-                              </>
-                            )}
-                          </button>
+                        ))}
+                        {!order.items?.length && (
+                          <p className="text-xs text-neutral-400 italic">Loading items...</p>
                         )}
-
-                        {order.status === "served" && (
-                          <div className="flex items-center justify-center gap-2 text-green-500 text-xs font-black uppercase tracking-widest py-3">
-                            <CheckCircle2 className="w-4 h-4" />
-                            Ready to Serve
-                          </div>
-                        )}
-                      </motion.div>
-                    );
-                  })}
+                      </div>
+                    </motion.div>
+                  ))}
               </AnimatePresence>
 
               {col.orders.length === 0 && (

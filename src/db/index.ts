@@ -17,7 +17,7 @@ const globalForPostgres = global as unknown as {
 const client = globalForPostgres.client ?? postgres(connectionString, { 
   prepare: false, 
   ssl: 'require',
-  max: process.env.NODE_ENV === 'production' ? 10 : 1,
+  max: 1,
 });
 
 if (process.env.NODE_ENV !== 'production') globalForPostgres.client = client;

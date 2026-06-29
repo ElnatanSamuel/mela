@@ -289,7 +289,7 @@ export default function LiveOrderBoard({
                       )}
                     </button>
                   )}
-                  {role !== "waiter" && nextStatus && !needsPayment && (
+                  {role !== "waiter" && role !== "owner" && role !== "manager" && nextStatus && !needsPayment && (
                     <button
                       onClick={() =>
                         updateStatusMutation.mutate({
@@ -310,7 +310,7 @@ export default function LiveOrderBoard({
                       )}
                     </button>
                   )}
-                  {role !== "waiter" && !nextStatus && !needsPayment && (
+                  {role !== "waiter" && role !== "owner" && role !== "manager" && !nextStatus && !needsPayment && (
                     <div className="flex items-center justify-center gap-2 text-green-600 text-[10px] font-black uppercase tracking-widest py-3 bg-green-50 rounded-xl border border-green-100">
                       <CheckCircle2 className="w-4 h-4" />
                       Order Completed
@@ -320,6 +320,15 @@ export default function LiveOrderBoard({
                     <div className="flex items-center justify-center gap-2 text-muted-foreground text-[10px] font-black uppercase tracking-widest py-3">
                       {order.status === "served" ? (
                         <><CheckCircle2 className="w-4 h-4 text-green-500" /> Ready to serve</>
+                      ) : (
+                        <>Status: {order.status}</>
+                      )}
+                    </div>
+                  )}
+                  {(role === "owner" || role === "manager") && (
+                    <div className="flex items-center justify-center gap-2 text-muted-foreground text-[10px] font-black uppercase tracking-widest py-3">
+                      {order.status === "completed" ? (
+                        <><CheckCircle2 className="w-4 h-4 text-green-500" /> Completed</>
                       ) : (
                         <>Status: {order.status}</>
                       )}

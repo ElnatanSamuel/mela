@@ -30,6 +30,13 @@ interface Hotel {
   slug: string;
 }
 
+interface Schedule {
+  id: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+}
+
 function LiveClock() {
   const [time, setTime] = useState("");
   const [date, setDate] = useState("");
@@ -115,6 +122,17 @@ export default function ClockTokenPage() {
     queryFn: () => fetch(`/api/staff/clock-by-name?hotelId=${hotel?.id}`).then((r) => r.json()),
     enabled: !!hotel?.id && step !== "pin" && step !== "hotel",
   });
+
+  const { data: schedules = [] } = useQuery<Schedule[]>({
+    queryKey: ["schedules", hotel?.id],
+    queryFn: () => fetch("/api/staff/schedules").then((r) => r.json()),
+    enabled: !!hotel?.id && step !== "pin" && step !== "hotel",
+  });
+
+  const todaySchedule = useMemo(() => {
+    const today = new Date().getDay();
+    return schedules.find((s) => s.dayOfWeek === today);
+  }, [schedules]);
 
   const clockMutation = useMutation({
     mutationFn: async ({ action, id }: { action: "in" | "out"; id: string }) => {
@@ -229,6 +247,22 @@ export default function ClockTokenPage() {
                 <LiveClock />
               </div>
             </div>
+            {todaySchedule && (
+              <div className="mt-3 px-3 py-2 bg-neutral-800 rounded-xl border border-neutral-700 flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 text-orange-500" />
+                <p className="text-[10px] font-bold text-neutral-300 uppercase tracking-widest">
+                  Today: {todaySchedule.startTime} — {todaySchedule.endTime}
+                </p>
+              </div>
+            )}
+            {!todaySchedule && schedules.length > 0 && (
+              <div className="mt-3 px-3 py-2 bg-neutral-800 rounded-xl border border-neutral-700 flex items-center gap-2">
+                <Clock className="w-3.5 h-3.5 text-neutral-500" />
+                <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">
+                  No schedule set for today
+                </p>
+              </div>
+            )}
             {showSearch && (
               <div className="relative mt-4">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
