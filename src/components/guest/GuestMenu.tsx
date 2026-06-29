@@ -245,17 +245,6 @@ export default function GuestMenu({
     };
   }, [activeOrderId]);
 
-  // Auto-show receipt when cash order is served
-  useEffect(() => {
-    if (
-      activeOrderId &&
-      orderStatus === "served" &&
-      currentOrderPaymentType === "cash"
-    ) {
-      setShowReceipt(true);
-    }
-  }, [orderStatus, activeOrderId, currentOrderPaymentType]);
-
   // Auto-show order tracking when redirected from payment success
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -338,10 +327,6 @@ export default function GuestMenu({
       }
       setActiveOrderId(data.id);
       setOrderStatus(data.status);
-      // Auto-show receipt for cash orders when served
-      if (paymentMethod === "cash" && data.status === "served") {
-        setShowReceipt(true);
-      }
       setCart({});
       setAppliedPromo(null);
       setPromoCodeInput("");
@@ -633,14 +618,14 @@ export default function GuestMenu({
           )}
 
           <div className="space-y-3">
-            {orderStatus === "served" && (
+            {orderStatus === "served" && currentPaymentStatus !== "paid" && (
               <>
                 <button
-                  onClick={() => currentPaymentStatus === "paid" ? setShowReceipt(true) : setShowPaymentSheet(true)}
+                  onClick={() => setShowPaymentSheet(true)}
                   className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-2 shadow-lg"
                 >
                   <Receipt className="w-4 h-4" />
-                  {currentPaymentStatus === "paid" ? "View Receipt" : "Pay Now"}
+                  Pay Now
                 </button>
               </>
             )}
