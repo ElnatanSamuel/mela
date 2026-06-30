@@ -88,6 +88,7 @@ export async function POST(req: Request) {
       promoCodeId: promoCodeId || null,
       discountAmount: discount.toFixed(2),
       tipAmount: tip.toFixed(2),
+      customerPhone: customerPhone || null,
     }).returning();
 
     if (promoCodeId) {

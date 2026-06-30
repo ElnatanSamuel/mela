@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { orders, orderItems, menuItems, hotels, receiptSettings } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { orders, orderItems, menuItems, hotels, receiptSettings, customerProfiles } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 
 export async function GET(
   req: Request,
@@ -49,6 +49,20 @@ export async function GET(
       .where(eq(receiptSettings.hotelId, order.hotelId))
       .limit(1);
 
+    // Fetch customer profile if phone exists
+    let customerProfile = null;
+    if (order.customerPhone) {
+      const [profile] = await db
+        .select()
+        .from(customerProfiles)
+        .where(and(
+          eq(customerProfiles.hotelId, order.hotelId),
+          eq(customerProfiles.phone, order.customerPhone)
+        ))
+        .limit(1);
+      if (profile) customerProfile = profile;
+    }
+
     return NextResponse.json({
       order: {
         id: order.id,
@@ -62,6 +76,7 @@ export async function GET(
         paymentStatus: order.paymentStatus,
         orderType: order.orderType,
         createdAt: order.createdAt,
+        customerPhone: order.customerPhone,
       },
       hotel: hotel || null,
       items: items.map((i) => ({
@@ -79,6 +94,7 @@ export async function GET(
         showServiceCharge: true,
         showItemStatus: false,
       },
+      customerProfile,
     });
   } catch (err: any) {
     console.error("Guest receipt error:", err);

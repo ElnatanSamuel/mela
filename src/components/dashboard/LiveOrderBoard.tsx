@@ -12,6 +12,7 @@ import {
   DollarSign,
   RotateCcw,
   X,
+  Phone,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -33,6 +34,7 @@ interface Order {
   created_at: string;
   items?: any[];
   transactionId?: string;
+  customer_phone?: string;
 }
 
 export default function LiveOrderBoard({
@@ -260,6 +262,12 @@ export default function LiveOrderBoard({
                         minute: "2-digit",
                       })}
                     </span>
+                    {order.customer_phone && (
+                      <span className="inline-flex items-center gap-1 text-[9px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded-[4px] ml-auto">
+                        <Phone className="w-3 h-3" />
+                        {order.customer_phone}
+                      </span>
+                    )}
                   </div>
 
                   <div className="p-4 bg-muted rounded-[6px] border border-border flex justify-between items-center group-hover:bg-card group-hover:border-muted-foreground/20 transition-all">

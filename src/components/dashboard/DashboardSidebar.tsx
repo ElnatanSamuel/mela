@@ -17,6 +17,7 @@ import {
   ChevronRight,
   User,
   ChefHat,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
@@ -48,6 +49,7 @@ export default function DashboardSidebar({ role, email }: DashboardSidebarProps)
     { name: "Tables", href: "/dashboard/tables", icon: QrCode, show: isAdmin },
     { name: "Inventory", href: "/dashboard/inventory", icon: Package, show: isAdmin },
     { name: "Staff", href: "/dashboard/staff", icon: Users, show: isAdmin },
+    { name: "Loyalty", href: "/dashboard/loyalty", icon: Star, show: isAdmin },
     { name: "Promos", href: "/dashboard/promos", icon: Tag, show: isAdmin },
     { name: "Complaints", href: "/dashboard/complaints", icon: AlertTriangle, show: isAdmin, badge: "complaints" },
     { name: "Settings", href: "/dashboard/settings", icon: Settings, show: isAdmin },

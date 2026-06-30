@@ -98,6 +98,7 @@ export async function GET(req: Request) {
       order_type: orders.orderType,
       total_amount: orders.totalAmount,
       created_at: orders.createdAt,
+      customer_phone: orders.customerPhone,
       table_id: orders.tableId,
       tableNumber: tables.tableNumber,
       transactionId: sql<string>`

@@ -56,10 +56,11 @@ export async function middleware(request: NextRequest) {
 
   const isClock = request.nextUrl.pathname.startsWith('/auth/clock')
   const isKitchen = request.nextUrl.pathname.startsWith('/kitchen')
+  const isWaiter = request.nextUrl.pathname.startsWith('/waiter')
   const isPayment = request.nextUrl.pathname.startsWith('/payment')
 
   // 0. Always allow public pages (no auth needed)
-  if (isClock || isKitchen || isPayment) return response
+  if (isClock || isKitchen || isWaiter || isPayment) return response
 
   const { data: { user } } = await supabase.auth.getUser()
 

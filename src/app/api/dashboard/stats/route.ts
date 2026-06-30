@@ -23,14 +23,14 @@ export async function GET() {
       count: sql<number>`count(*)`,
     })
     .from(orders)
-    .where(and(eq(orders.hotelId, hotelId), gte(orders.createdAt, today), eq(orders.status, 'completed')));
+    .where(and(eq(orders.hotelId, hotelId), gte(orders.createdAt, today), eq(orders.status, 'served')));
 
   const [tablesServed] = await db
     .select({
       count: sql<number>`count(distinct ${orders.tableId})`,
     })
     .from(orders)
-    .where(and(eq(orders.hotelId, hotelId), gte(orders.createdAt, today), eq(orders.status, 'completed')));
+    .where(and(eq(orders.hotelId, hotelId), gte(orders.createdAt, today), eq(orders.status, 'served')));
 
   // 2. Weekly Revenue Flow
   const weeklyRevenue = await db
@@ -39,7 +39,7 @@ export async function GET() {
       total: sql<number>`sum(cast(${orders.totalAmount} as numeric))`,
     })
     .from(orders)
-    .where(and(eq(orders.hotelId, hotelId), gte(orders.createdAt, startOfWeek), eq(orders.status, 'completed')))
+    .where(and(eq(orders.hotelId, hotelId), gte(orders.createdAt, startOfWeek), eq(orders.status, 'served')))
     .groupBy(sql`to_char(${orders.createdAt}, 'Dy')`, sql`extract(dow from ${orders.createdAt})`)
     .orderBy(sql`extract(dow from ${orders.createdAt})`);
 
@@ -50,7 +50,7 @@ export async function GET() {
       value: sql<number>`sum(cast(${orders.totalAmount} as numeric))`,
     })
     .from(orders)
-    .where(and(eq(orders.hotelId, hotelId), gte(orders.createdAt, startOfWeek), eq(orders.status, 'completed')))
+    .where(and(eq(orders.hotelId, hotelId), gte(orders.createdAt, startOfWeek), eq(orders.status, 'served')))
     .groupBy(orders.paymentStatus);
 
   // 4. Insights
@@ -59,7 +59,7 @@ export async function GET() {
       value: sql<number>`avg(cast(${orders.totalAmount} as numeric))`,
     })
     .from(orders)
-    .where(and(eq(orders.hotelId, hotelId), eq(orders.status, 'completed')));
+    .where(and(eq(orders.hotelId, hotelId), eq(orders.status, 'served')));
 
   // 5. Best Sellers (All Time)
   const bestSellers = await db

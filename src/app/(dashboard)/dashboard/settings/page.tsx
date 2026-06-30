@@ -236,7 +236,7 @@ export default async function ManagerSettingsPage() {
         </div>
       </form>
 
-      <ClockLinkManager hotelSlug={hotel.slug || hotel.name.toLowerCase().replace(/\s+/g, "-")} hotelName={hotel.name} clockToken={hotel.clockToken} kitchenToken={hotel.kitchenToken} />
+      <ClockLinkManager hotelSlug={hotel.slug || hotel.name.toLowerCase().replace(/\s+/g, "-")} hotelName={hotel.name} clockToken={hotel.clockToken} kitchenToken={hotel.kitchenToken} waiterToken={hotel.kitchenToken} />
 
       <ReceiptSettings />
 

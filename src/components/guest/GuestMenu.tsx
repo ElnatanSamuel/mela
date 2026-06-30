@@ -24,7 +24,6 @@ import {
   Sparkles,
   Receipt,
   ArrowLeft,
-  Star,
 } from "lucide-react";
 import { ServiceRequestButton } from "./ServiceRequestButton";
 import GuestReceipt from "./GuestReceipt";
@@ -256,6 +255,16 @@ export default function GuestMenu({
     }
   }, []);
 
+  const cartItemCount = Object.values(cart).reduce((a, b) => a + b.qty, 0);
+
+  const cartSubtotal = Object.entries(cart).reduce((total, [id, entry]) => {
+    const item = liveItems.find((m) => m.id === id);
+    const base = parseFloat(item?.price || "0") * entry.qty;
+    const modifiers =
+      entry.modifiers.reduce((s, m) => s + m.priceDelta, 0) * entry.qty;
+    return total + base + modifiers;
+  }, 0);
+
   const placeOrderMutation = useMutation({
     mutationFn: async (paymentMethod: "digital" | "cash") => {
       const res = await fetch("/api/guest/orders", {
@@ -449,16 +458,6 @@ export default function GuestMenu({
     });
   };
 
-  const cartItemCount = Object.values(cart).reduce((a, b) => a + b.qty, 0);
-
-  const cartSubtotal = Object.entries(cart).reduce((total, [id, entry]) => {
-    const item = liveItems.find((m) => m.id === id);
-    const base = parseFloat(item?.price || "0") * entry.qty;
-    const modifiers =
-      entry.modifiers.reduce((s, m) => s + m.priceDelta, 0) * entry.qty;
-    return total + base + modifiers;
-  }, 0);
-
   const discountAmount = appliedPromo?.discount || 0;
   const vatAmount = cartSubtotal * vatRate;
   const serviceAmount = cartSubtotal * serviceChargeRate;
@@ -625,6 +624,12 @@ export default function GuestMenu({
                 <Receipt className="w-4 h-4" />
                 Pay Now
               </button>
+            )}
+            {orderStatus === "served" && currentPaymentStatus === "paid" && (
+              <div className="w-full bg-green-50 border border-green-200 text-green-700 py-4 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                <CheckCircle2 className="w-4 h-4" />
+                Paid
+              </div>
             )}
 
             <button
@@ -1133,7 +1138,7 @@ export default function GuestMenu({
                 {/* Phone */}
                 <div className="mb-4">
                   <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 block mb-2">
-                    Phone (for loyalty)
+                    Phone
                   </label>
                   <input
                     type="tel"

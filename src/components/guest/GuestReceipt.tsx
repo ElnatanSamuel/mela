@@ -3,6 +3,7 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, CheckCircle2 } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 interface ReceiptItem {
   name: string;
@@ -129,12 +130,12 @@ export default function GuestReceipt({ orderId, onBack }: GuestReceiptProps) {
                     {item.name}
                   </span>
                   <span className="text-neutral-500 w-6 text-center">{item.quantity}</span>
-                  <span className="w-12 text-right">{(parseFloat(item.unitPrice) * item.quantity).toLocaleString()}</span>
+                  <span className="w-16 text-right tabular-nums">{formatCurrency((parseFloat(item.unitPrice) * item.quantity).toString())}</span>
                 </div>
                 {item.modifiers?.map((mod: any, j: number) => (
                   <div key={j} className="flex justify-between text-[9px] text-neutral-400 pl-3">
                     <span>+ {mod.name}</span>
-                    <span>{mod.priceDelta > 0 ? `+${mod.priceDelta}` : ""}</span>
+                    <span>{mod.priceDelta > 0 ? `+${formatCurrency(mod.priceDelta.toString())}` : ""}</span>
                   </div>
                 ))}
               </div>
@@ -147,30 +148,30 @@ export default function GuestReceipt({ orderId, onBack }: GuestReceiptProps) {
             <div className="space-y-1.5 text-[10px]">
               <div className="flex justify-between">
                 <span className="text-neutral-500">Subtotal</span>
-                <span>{subtotal.toLocaleString()}</span>
+                <span className="tabular-nums">{formatCurrency(subtotal.toString())}</span>
               </div>
               {showVat && (
                 <div className="flex justify-between">
                   <span className="text-neutral-500">VAT 15%</span>
-                  <span>{vat.toLocaleString()}</span>
+                  <span className="tabular-nums">{formatCurrency(vat.toFixed(2))}</span>
                 </div>
               )}
               {showService && (
                 <div className="flex justify-between">
                   <span className="text-neutral-500">Service 10%</span>
-                  <span>{service.toLocaleString()}</span>
+                  <span className="tabular-nums">{formatCurrency(service.toFixed(2))}</span>
                 </div>
               )}
               {discount > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span>Discount</span>
-                  <span>-{discount.toLocaleString()}</span>
+                  <span className="tabular-nums">-{formatCurrency(discount.toString())}</span>
                 </div>
               )}
               {tip > 0 && (
                 <div className="flex justify-between">
                   <span className="text-neutral-500">Tip</span>
-                  <span>{tip.toLocaleString()}</span>
+                  <span className="tabular-nums">{formatCurrency(tip.toString())}</span>
                 </div>
               )}
             </div>
@@ -181,7 +182,7 @@ export default function GuestReceipt({ orderId, onBack }: GuestReceiptProps) {
             {/* Total */}
             <div className="flex justify-between text-sm font-black">
               <span>TOTAL</span>
-              <span>{total.toLocaleString()} ETB</span>
+              <span className="tabular-nums">{formatCurrency(total.toString())} ETB</span>
             </div>
 
             {/* Divider */}

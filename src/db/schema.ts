@@ -213,6 +213,7 @@ export const orders = pgTable('orders', {
   promoCodeId: uuid('promo_code_id').references(() => promoCodes.id, { onDelete: 'set null' }),
   discountAmount: numeric('discount_amount', { precision: 12, scale: 2 }).default('0').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  customerPhone: text('customer_phone'),
 }, (table) => ({
   hotelIdx: index('idx_orders_hotel').on(table.hotelId),
   statusIdx: index('idx_orders_status').on(table.status),
