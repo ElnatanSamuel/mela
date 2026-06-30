@@ -30,6 +30,7 @@ interface Assignment {
 
 interface StaffMember {
   userId: string;
+  name: string;
   role: string;
 }
 
@@ -138,6 +139,10 @@ export default function TableManager({ hotelId, settings }: { hotelId: string; s
     return a?.userId || null;
   }
 
+  function waiterName(userId: string): string {
+    return waiters.find((w) => w.userId === userId)?.name || userId.slice(0, 8);
+  }
+
   const waiterList = waiters.filter((w) => w.role === "waiter");
 
   return (
@@ -216,7 +221,7 @@ export default function TableManager({ hotelId, settings }: { hotelId: string; s
                       <div className="flex items-center gap-2 min-w-0">
                         <User className="w-3 h-3 text-orange-500 shrink-0" />
                         <span className="text-[9px] font-black text-orange-500 uppercase tracking-widest truncate">
-                          {assigned.slice(0, 8)}...
+                          {waiterName(assigned)}
                         </span>
                       </div>
                       <button
@@ -238,7 +243,7 @@ export default function TableManager({ hotelId, settings }: { hotelId: string; s
                     >
                       <option value="">Assign waiter...</option>
                       {waiterList.map((w) => (
-                        <option key={w.userId} value={w.userId}>{w.userId.slice(0, 8)}...</option>
+                        <option key={w.userId} value={w.userId}>{w.name || w.userId.slice(0, 8)}</option>
                       ))}
                     </select>
                   )}

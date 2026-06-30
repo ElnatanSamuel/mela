@@ -102,7 +102,7 @@ export function AddStaffButton({
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
                   Role
@@ -116,6 +116,20 @@ export function AddStaffButton({
                     <option key={r.value} value={r.value}>{r.label}</option>
                   ))}
                 </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
+                  Staff PIN
+                </label>
+                <input
+                  name="pin"
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  defaultValue={String(1000 + Math.floor(Math.random() * 9000))}
+                  placeholder="4-6 digit PIN"
+                  className="w-full p-4 border border-neutral-200 rounded-[4px] text-xs font-bold font-mono tracking-widest focus:outline-none focus:border-neutral-900"
+                />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black uppercase tracking-widest text-neutral-400">

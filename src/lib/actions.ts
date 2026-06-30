@@ -285,8 +285,14 @@ export async function createStaff(formData: FormData) {
     const name = formData.get('name') as string;
     const role = formData.get('role') as any; 
     const hotelId = formData.get('hotelId') as string || null;
+    let pin = formData.get('pin') as string;
 
     if (!email || !role) throw new Error("Email and Role are required");
+
+    // Auto-generate PIN if not provided
+    if (!pin || pin.trim().length < 4) {
+      pin = String(1000 + Math.floor(Math.random() * 9000));
+    }
 
     // 1. Generate Secure Random Password
     const tempPassword = Math.random().toString(36).slice(-10) + "!";
@@ -305,6 +311,7 @@ export async function createStaff(formData: FormData) {
         userId: authData.user!.id,
         hotelId: hotelId || null,
         name: name || email.split("@")[0],
+        pin: pin.trim(),
         role
     }).returning();
 

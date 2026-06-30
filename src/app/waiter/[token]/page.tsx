@@ -89,11 +89,11 @@ export default function WaiterTokenPage() {
   const { token } = useParams<{ token: string }>();
   const addToast = useToastStore((s) => s.addToast);
 
-  const [step, setStep] = useState<"hotel" | "pin" | "name" | "board">("hotel");
+  const [step, setStep] = useState<"hotel" | "pin" | "staff-pin" | "board">("hotel");
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState("");
-  const [name, setName] = useState("");
-  const [nameError, setNameError] = useState("");
+  const [staffPin, setStaffPin] = useState("");
+  const [staffPinError, setStaffPinError] = useState("");
   const [staff, setStaff] = useState<StaffInfo | null>(null);
   const [hotelData, setHotelData] = useState<{ hotelId: string; hotelName: string } | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -134,7 +134,7 @@ export default function WaiterTokenPage() {
     },
     onSuccess: (data) => {
       setHotelData({ hotelId: data.hotelId, hotelName: data.hotelName });
-      setStep("name");
+      setStep("staff-pin");
       setPinError("");
     },
     onError: (err: Error) => {
@@ -143,23 +143,25 @@ export default function WaiterTokenPage() {
     },
   });
 
-  const identifyMutation = useMutation({
+  const verifyStaffPinMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/staff/clock-by-name", {
+      const res = await fetch("/api/staff/verify-staff-pin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, hotelId: hotelData?.hotelId }),
+        body: JSON.stringify({ hotelId: hotelData?.hotelId, pin: staffPin }),
       });
       const data = await res.json();
-      if (!res.ok || !data.staff) throw new Error("Staff not found");
-      return data.staff as StaffInfo;
+      if (!res.ok) throw new Error(data.error || "Invalid PIN");
+      return data as StaffInfo;
     },
     onSuccess: (data) => {
       setStaff(data);
       setStep("board");
+      setStaffPinError("");
     },
-    onError: () => {
-      setNameError("Staff not found. Check your name.");
+    onError: (err: Error) => {
+      setStaffPinError(err.message);
+      setStaffPin("");
     },
   });
 
@@ -423,34 +425,36 @@ export default function WaiterTokenPage() {
     );
   }
 
-  if (step === "name") {
+  if (step === "staff-pin") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-sm">
           <div className="text-center mb-8">
             <h1 className="text-xl font-black text-foreground uppercase tracking-tight">{hotel.name}</h1>
-            <p className="text-xs text-muted-foreground mt-1 uppercase tracking-widest font-bold">Who are you?</p>
+            <p className="text-xs text-muted-foreground mt-1 uppercase tracking-widest font-bold">Enter Your PIN</p>
           </div>
           <div className="space-y-4">
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-2">Your Name</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-2">Staff PIN</label>
               <input
-                type="text"
-                value={name}
-                onChange={(e) => { setName(e.target.value); setNameError(""); }}
-                onKeyDown={(e) => { if (e.key === "Enter" && name.trim()) identifyMutation.mutate(); }}
-                placeholder="Type your name"
+                type="password"
+                inputMode="numeric"
+                value={staffPin}
+                onChange={(e) => { setStaffPin(e.target.value.replace(/\D/g, "").slice(0, 6)); setStaffPinError(""); }}
+                onKeyDown={(e) => { if (e.key === "Enter" && staffPin.length >= 4) verifyStaffPinMutation.mutate(); }}
+                placeholder="Your 4-6 digit PIN"
+                maxLength={6}
                 autoFocus
-                className="w-full bg-card border border-border rounded-xl py-3 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-orange-500 font-bold tracking-wider text-center text-lg"
+                className="w-full bg-card border border-border rounded-xl py-3 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-orange-500 tracking-[0.5em] font-mono text-center text-lg"
               />
             </div>
-            {nameError && <p className="text-xs font-bold text-red-500 text-center">{nameError}</p>}
+            {staffPinError && <p className="text-xs font-bold text-red-500 text-center">{staffPinError}</p>}
             <button
-              onClick={() => identifyMutation.mutate()}
-              disabled={!name.trim() || identifyMutation.isPending}
+              onClick={() => verifyStaffPinMutation.mutate()}
+              disabled={staffPin.length < 4 || verifyStaffPinMutation.isPending}
               className="w-full bg-orange-500 text-white py-3.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-transform"
             >
-              {identifyMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Continue"}
+              {verifyStaffPinMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Continue"}
             </button>
           </div>
         </motion.div>

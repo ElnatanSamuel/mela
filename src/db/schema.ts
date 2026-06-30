@@ -46,6 +46,7 @@ export const hotelUsers = pgTable('hotel_users', {
   hotelId: uuid('hotel_id').references(() => hotels.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').notNull(),
   name: text('name'),
+  pin: text('pin'),
   role: text('role', { enum: ['owner', 'manager', 'waiter', 'chef', 'kitchen', 'biller', 'busboy', 'cleaner', 'platform_admin'] }).default('manager').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({

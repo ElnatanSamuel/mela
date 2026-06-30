@@ -44,14 +44,19 @@ export async function GET() {
     .orderBy(sql`extract(dow from ${orders.createdAt})`);
 
   // 3. Payment Channels
-  const paymentChannels = await db
+  const rawPaymentChannels = await db
     .select({
-      name: orders.paymentStatus, // Assuming payment_status might hold provider info or we use a separate field later. For now, let's group by status or dummy if schema is missing providers.
+      name: orders.orderType,
       value: sql<number>`sum(cast(${orders.totalAmount} as numeric))`,
     })
     .from(orders)
     .where(and(eq(orders.hotelId, hotelId), gte(orders.createdAt, startOfWeek), eq(orders.status, 'served')))
-    .groupBy(orders.paymentStatus);
+    .groupBy(orders.orderType);
+
+  const paymentChannels = rawPaymentChannels.map((c) => ({
+    name: c.name === "digital" ? "Digital (Chapa)" : "Cash",
+    value: c.value,
+  }));
 
   // 4. Insights
   const [avgTransaction] = await db
