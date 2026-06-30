@@ -23,6 +23,8 @@ import {
   Leaf,
   Sparkles,
   Receipt,
+  ArrowLeft,
+  Star,
 } from "lucide-react";
 import { ServiceRequestButton } from "./ServiceRequestButton";
 import GuestReceipt from "./GuestReceipt";
@@ -137,6 +139,7 @@ export default function GuestMenu({
     string | null
   >(null);
   const [showPaymentSheet, setShowPaymentSheet] = useState(false);
+  const [showSearchInput, setShowSearchInput] = useState(false);
 
   const fasting = useMemo(() => getFastingState(), []);
 
@@ -212,7 +215,6 @@ export default function GuestMenu({
 
   useEffect(() => {
     if (!activeOrderId) return;
-    // Fetch initial order data
     fetch(`/api/guest/orders/${activeOrderId}`)
       .then((r) => r.json())
       .then((d) => {
@@ -245,7 +247,6 @@ export default function GuestMenu({
     };
   }, [activeOrderId]);
 
-  // Auto-show order tracking when redirected from payment success
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const oid = params.get("orderId");
@@ -493,7 +494,6 @@ export default function GuestMenu({
     }))
     .filter((group) => group.items.length > 0 || activeCategory === group.id);
 
-  // --- Receipt View ---
   if (activeOrderId && showReceipt) {
     return (
       <GuestReceipt
@@ -503,7 +503,6 @@ export default function GuestMenu({
     );
   }
 
-  // --- Order Tracking View ---
   if (activeOrderId) {
     const steps = [
       { id: "pending", label: "Order Placed", sub: "We received your order" },
@@ -526,25 +525,28 @@ export default function GuestMenu({
     return (
       <div className="px-4 py-6">
         <div className="max-w-sm mx-auto">
-          {/* Back to menu */}
           <button
-            onClick={() => setActiveOrderId(null)}
-            className="text-stone-400 mb-8 block text-xs font-bold uppercase tracking-widest hover:text-stone-900 transition-colors"
+            onClick={() => {
+              setActiveOrderId(null);
+              setShowReceipt(false);
+            }}
+            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-stone-400 hover:text-stone-900 transition-colors mb-8"
           >
-            Back to Menu
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Back
           </button>
 
-          <div className="text-center">
-            <h2 className="text-2xl font-black text-stone-900 uppercase tracking-tight mb-2">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl font-black text-stone-900 tracking-tight mb-2">
               {orderStatus === "served"
                 ? "Order Ready!"
                 : orderStatus === "cancelled"
                   ? "Order Cancelled"
                   : "Order Placed"}
             </h2>
-            <p className="text-sm text-stone-400 mb-10">
+            <p className="text-sm text-stone-400">
               {orderStatus === "served"
-                ? "Your food is ready to enjoy"
+                ? "Your food is ready"
                 : orderStatus === "cancelled"
                   ? "This order has been cancelled"
                   : "Sit tight, we're working on it"}
@@ -558,10 +560,7 @@ export default function GuestMenu({
                   idx < normalizedIdx || orderStatus === "served";
                 const isActive = idx === normalizedIdx;
                 return (
-                  <div
-                    key={step.id}
-                    className="flex items-start gap-4 relative"
-                  >
+                  <div key={step.id} className="flex items-start gap-4 relative">
                     {idx < steps.length - 1 && (
                       <div className="absolute left-[15px] top-8 w-[2px] h-8">
                         <div
@@ -619,27 +618,28 @@ export default function GuestMenu({
 
           <div className="space-y-3">
             {orderStatus === "served" && currentPaymentStatus !== "paid" && (
-              <>
-                <button
-                  onClick={() => setShowPaymentSheet(true)}
-                  className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-2 shadow-lg"
-                >
-                  <Receipt className="w-4 h-4" />
-                  Pay Now
-                </button>
-              </>
+              <button
+                onClick={() => setShowPaymentSheet(true)}
+                className="w-full bg-stone-900 text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-2 shadow-lg hover:bg-stone-800"
+              >
+                <Receipt className="w-4 h-4" />
+                Pay Now
+              </button>
             )}
 
             <button
-              onClick={() => setActiveOrderId(null)}
-              className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform"
+              onClick={() => {
+                setActiveOrderId(null);
+                setShowReceipt(false);
+              }}
+              className="w-full bg-stone-900 text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform hover:bg-stone-800"
             >
               {orderStatus === "served" ? "Order Again" : "Back to Menu"}
             </button>
 
             <button
               onClick={() => setShowComplaintModal(true)}
-              className="w-full text-stone-400 py-3 text-xs font-bold uppercase tracking-widest"
+              className="w-full text-stone-400 py-3 text-xs font-bold uppercase tracking-widest hover:text-stone-600 transition-colors"
             >
               Report an Issue
             </button>
@@ -651,7 +651,7 @@ export default function GuestMenu({
               onClick={() => setShowComplaintModal(false)}
             >
               <div
-                className="bg-white rounded-3xl w-full max-w-md p-6 shadow-xl"
+                className="bg-white rounded-2xl w-full max-w-md p-6 shadow-xl"
                 onClick={(e) => e.stopPropagation()}
               >
                 <h3 className="text-lg font-black uppercase tracking-tight text-stone-900 mb-4">
@@ -661,7 +661,7 @@ export default function GuestMenu({
                   value={complaintMessage}
                   onChange={(e) => setComplaintMessage(e.target.value)}
                   placeholder="Tell us about your experience..."
-                  className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-stone-400 resize-none h-28"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-stone-400 resize-none h-28"
                   autoFocus
                 />
                 <div className="flex gap-3 mt-4">
@@ -695,7 +695,6 @@ export default function GuestMenu({
             </div>
           )}
 
-          {/* Payment Bottom Sheet */}
           <AnimatePresence>
             {showPaymentSheet && (
               <div className="fixed inset-0 z-[100]" onClick={() => setShowPaymentSheet(false)}>
@@ -706,7 +705,7 @@ export default function GuestMenu({
                   exit={{ y: "100%" }}
                   transition={{ type: "spring", damping: 30, stiffness: 300 }}
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl"
+                  className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl"
                 >
                   <div className="flex justify-center pt-3 pb-2">
                     <div className="w-10 h-1 bg-stone-200 rounded-full" />
@@ -718,7 +717,7 @@ export default function GuestMenu({
                     <button
                       onClick={() => { setShowPaymentSheet(false); payNowMutation.mutate(); }}
                       disabled={payNowMutation.isPending}
-                      className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-3 disabled:opacity-50 shadow-lg"
+                      className="w-full bg-stone-900 text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform flex items-center justify-center gap-3 disabled:opacity-50 shadow-lg hover:bg-stone-800"
                     >
                       {payNowMutation.isPending ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -728,13 +727,13 @@ export default function GuestMenu({
                     </button>
                     <button
                       onClick={() => { setShowPaymentSheet(false); setShowReceipt(true); }}
-                      className="w-full border-2 border-stone-200 text-stone-500 py-4 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform"
+                      className="w-full border-2 border-stone-200 text-stone-500 py-4 rounded-xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-transform hover:border-stone-300"
                     >
                       Pay at Counter
                     </button>
                     <button
                       onClick={() => setShowPaymentSheet(false)}
-                      className="w-full text-stone-400 py-2 text-[10px] font-bold uppercase tracking-widest"
+                      className="w-full text-stone-400 py-2 text-[10px] font-bold uppercase tracking-widest hover:text-stone-600 transition-colors"
                     >
                       Cancel
                     </button>
@@ -748,48 +747,62 @@ export default function GuestMenu({
     );
   }
 
-  // --- Loading ---
   if (isLoading) {
     return (
       <div className="px-4 py-8 space-y-4">
         {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-32 bg-stone-100 rounded-2xl animate-pulse"
-          />
+          <div key={i} className="h-28 bg-white rounded-xl animate-pulse shadow-sm" />
         ))}
       </div>
     );
   }
 
-  // --- Main Menu ---
   return (
     <div className="pb-32">
       {/* Search */}
-      <div className="relative mb-6 mt-6">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300" />
-        <input
-          type="text"
-          placeholder="Search menu..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full bg-white border border-stone-200 rounded-2xl py-3.5 pl-11 pr-4 text-sm focus:outline-none focus:border-stone-900 focus:ring-2 focus:ring-stone-900/5 transition-all shadow-sm"
-        />
+      <div className="relative mb-5 mt-5">
+        {showSearchInput ? (
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-300" />
+            <input
+              type="text"
+              placeholder="Search menu..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              autoFocus
+              className="w-full bg-white border border-stone-200 rounded-xl py-3.5 pl-11 pr-11 text-sm focus:outline-none focus:border-stone-900 focus:ring-2 focus:ring-stone-900/5 transition-all shadow-sm"
+            />
+            <button
+              onClick={() => { setShowSearchInput(false); setSearch(""); }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-300 hover:text-stone-500 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowSearchInput(true)}
+            className="w-full bg-white border border-stone-200 rounded-xl py-3.5 px-4 flex items-center gap-3 shadow-sm active:scale-[0.99] transition-all text-left"
+          >
+            <Search className="w-4 h-4 text-stone-300 shrink-0" />
+            <span className="text-sm text-stone-400">Search menu...</span>
+          </button>
+        )}
       </div>
 
       {/* Category Pills */}
       <div
-        className="flex gap-2 overflow-x-auto pb-1 mb-6"
+        className="flex gap-2 overflow-x-auto pb-1 mb-5"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         <div className="flex gap-2 shrink-0">
           <button
             onClick={() => setActiveCategory("all")}
             className={cn(
-              "px-5 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap",
+              "px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap uppercase tracking-wider",
               activeCategory === "all"
-                ? "bg-stone-900 text-white shadow-lg shadow-stone-900/20"
-                : "bg-white text-stone-400 border border-stone-200 active:bg-stone-100",
+                ? "bg-stone-900 text-white shadow-md shadow-stone-900/20"
+                : "bg-stone-100 text-stone-400 hover:bg-stone-200 active:bg-stone-300",
             )}
           >
             All
@@ -799,10 +812,10 @@ export default function GuestMenu({
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}
               className={cn(
-                "px-5 py-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap",
+                "px-4 py-2.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap uppercase tracking-wider",
                 activeCategory === cat.id
-                  ? "bg-stone-900 text-white shadow-lg shadow-stone-900/20"
-                  : "bg-white text-stone-400 border border-stone-200 active:bg-stone-100",
+                  ? "bg-stone-900 text-white shadow-md shadow-stone-900/20"
+                  : "bg-stone-100 text-stone-400 hover:bg-stone-200 active:bg-stone-300",
               )}
             >
               {cat.name}
@@ -813,10 +826,10 @@ export default function GuestMenu({
 
       {/* Fasting Banner */}
       {fasting.isFastingDay && (
-        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
+          <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
           <p className="text-xs font-bold text-amber-700">
-            የጾም ቀን — {fasting.seasonName}. Vegetarian options shown first.
+            {fasting.seasonName}. Vegetarian options shown first.
           </p>
         </div>
       )}
@@ -826,7 +839,7 @@ export default function GuestMenu({
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="w-4 h-4 text-amber-500" />
-            <h2 className="text-lg font-black text-stone-900 uppercase tracking-tight">
+            <h2 className="text-sm font-black text-stone-900 uppercase tracking-widest">
               Meal Deals
             </h2>
           </div>
@@ -834,7 +847,7 @@ export default function GuestMenu({
             {combos.map((combo) => (
               <div
                 key={combo.id}
-                className="min-w-[240px] bg-stone-900 text-white rounded-2xl p-5 flex-shrink-0"
+                className="min-w-[240px] bg-stone-900 text-white rounded-xl p-5 flex-shrink-0"
               >
                 <div className="flex items-start justify-between mb-3">
                   <h3 className="text-sm font-black uppercase tracking-tight">
@@ -859,7 +872,7 @@ export default function GuestMenu({
                   </span>
                   <button
                     onClick={() => handleAddCombo(combo)}
-                    className="bg-white text-stone-900 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-transform"
+                    className="bg-white text-stone-900 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest active:scale-95 transition-transform hover:bg-stone-100"
                   >
                     Add
                   </button>
@@ -871,10 +884,10 @@ export default function GuestMenu({
       )}
 
       {/* Grouped Menu */}
-      <div className="space-y-10">
+      <div className="space-y-8">
         {groupedItems.map((group) => (
           <section key={group.id}>
-            <h2 className="text-xl font-black text-stone-900 uppercase tracking-tight mb-5">
+            <h2 className="text-sm font-black text-stone-900 uppercase tracking-widest mb-4 px-0.5">
               {group.name}
             </h2>
 
@@ -889,14 +902,14 @@ export default function GuestMenu({
                     transition={{ delay: i * 0.03 }}
                     onClick={() => !isUnavailable && setDetailItem(item)}
                     className={cn(
-                      "bg-white rounded-2xl border border-stone-100 p-4 flex gap-4 transition-all shadow-sm",
+                      "bg-white rounded-xl p-3 flex gap-3 shadow-sm transition-all",
                       isUnavailable
                         ? "opacity-40"
-                        : "active:scale-[0.98] cursor-pointer",
+                        : "cursor-pointer active:scale-[0.99] hover:shadow-md",
                     )}
                   >
                     {/* Image */}
-                    <div className="w-28 h-28 bg-stone-100 rounded-xl overflow-hidden shrink-0 relative">
+                    <div className="w-24 h-24 bg-stone-100 rounded-lg overflow-hidden shrink-0 relative">
                       {item.imageUrl ? (
                         <img
                           src={item.imageUrl}
@@ -905,50 +918,50 @@ export default function GuestMenu({
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <Utensils className="w-6 h-6 text-stone-200" />
+                          <Utensils className="w-5 h-5 text-stone-200" />
                         </div>
                       )}
                       {item.isDailySpecial && (
-                        <div className="absolute top-2 left-2 bg-amber-500 text-white px-2 py-0.5 rounded-full text-[8px] font-black uppercase">
+                        <div className="absolute top-1.5 left-1.5 bg-amber-500 text-white px-2 py-0.5 rounded-md text-[8px] font-black uppercase shadow-sm">
                           Special
                         </div>
                       )}
                     </div>
 
                     {/* Info */}
-                    <div className="flex-1 flex flex-col justify-between min-w-0">
-                      <div>
+                    <div className="flex-1 flex flex-col justify-between min-w-0 py-0.5">
+                      <div className="space-y-1">
                         <div className="flex items-start justify-between gap-2">
                           <h3 className="font-bold text-stone-900 text-sm leading-tight">
                             {item.name}
                           </h3>
-                          <span className="font-black text-stone-900 text-sm whitespace-nowrap">
+                          <span className="font-black text-stone-900 text-sm whitespace-nowrap tabular-nums">
                             {formatCurrency(item.price)}
                           </span>
                         </div>
                         {item.nameAm && (
-                          <p className="text-[11px] text-stone-300 mt-0.5">
+                          <p className="text-[10px] text-stone-300 leading-tight">
                             {item.nameAm}
                           </p>
                         )}
                         {item.description && (
-                          <p className="text-xs text-stone-400 mt-1.5 line-clamp-2 leading-relaxed">
+                          <p className="text-xs text-stone-400 line-clamp-1 leading-relaxed">
                             {item.description}
                           </p>
                         )}
-                        <div className="flex items-center gap-2 mt-2">
+                        <div className="flex items-center gap-2 pt-0.5">
                           {item.isVegetarian && (
-                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                            <span className="inline-flex items-center gap-1 text-[8px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-md">
                               <Leaf className="w-2.5 h-2.5" /> Veg
                             </span>
                           )}
                           {item.isSpicy && (
-                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
+                            <span className="inline-flex items-center gap-1 text-[8px] font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded-md">
                               <Flame className="w-2.5 h-2.5" /> Spicy
                             </span>
                           )}
                           {item.estimatedPrepTime && (
-                            <span className="inline-flex items-center gap-1 text-[9px] font-bold text-stone-400">
+                            <span className="inline-flex items-center gap-1 text-[8px] font-bold text-stone-400">
                               <Clock className="w-2.5 h-2.5" />{" "}
                               {item.estimatedPrepTime}m
                             </span>
@@ -957,19 +970,19 @@ export default function GuestMenu({
                       </div>
 
                       {/* Add to cart */}
-                      <div className="flex justify-end mt-2">
+                      <div className="flex justify-end mt-1.5">
                         {cart[item.id] ? (
                           <div
                             onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-2 bg-stone-900 text-white rounded-full p-1"
+                            className="flex items-center gap-1 bg-stone-900 text-white rounded-lg p-1"
                           >
                             <button
                               onClick={() => updateCart(item.id, -1)}
-                              className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center active:bg-white/20"
+                              className="w-7 h-7 rounded-md bg-white/10 flex items-center justify-center active:bg-white/20 transition-colors"
                             >
                               <Minus className="w-3 h-3" />
                             </button>
-                            <span className="text-xs font-black w-5 text-center">
+                            <span className="text-xs font-black w-6 text-center tabular-nums">
                               {cart[item.id].qty}
                             </span>
                             <button
@@ -977,7 +990,7 @@ export default function GuestMenu({
                                 e.stopPropagation();
                                 handleAddItem(item);
                               }}
-                              className="w-8 h-8 rounded-full bg-white flex items-center justify-center active:scale-95 transition-transform"
+                              className="w-7 h-7 rounded-md bg-white flex items-center justify-center active:scale-95 transition-transform"
                             >
                               <Plus className="w-3 h-3 text-stone-900" />
                             </button>
@@ -989,7 +1002,7 @@ export default function GuestMenu({
                               handleAddItem(item);
                             }}
                             disabled={isUnavailable}
-                            className="bg-stone-900 text-white px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest active:scale-95 transition-transform disabled:opacity-30"
+                            className="bg-stone-900 text-white px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest active:scale-95 transition-transform disabled:opacity-30 hover:bg-stone-800"
                           >
                             Add
                           </button>
@@ -1007,9 +1020,9 @@ export default function GuestMenu({
       {/* Empty State */}
       {groupedItems.length === 0 && !isLoading && (
         <div className="py-20 text-center">
-          <Utensils className="w-12 h-12 text-stone-200 mx-auto mb-4" />
-          <p className="text-sm font-bold text-stone-300">No items found</p>
-          <p className="text-xs text-stone-200 mt-1">
+          <Utensils className="w-10 h-10 text-stone-200 mx-auto mb-3" />
+          <p className="text-sm font-bold text-stone-300 uppercase tracking-wider">No items found</p>
+          <p className="text-xs text-stone-300 mt-1">
             Try a different search or category
           </p>
         </div>
@@ -1022,22 +1035,22 @@ export default function GuestMenu({
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-6 inset-x-4 z-[60]"
+            className="fixed bottom-6 inset-x-4 z-60"
           >
             <button
               onClick={() => setIsCheckoutOpen(true)}
-              className="w-full bg-stone-900 text-white py-4 px-6 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-between active:scale-[0.98] transition-transform"
+              className="w-full bg-stone-900 text-white py-4 px-5 rounded-xl font-black text-xs uppercase tracking-widest shadow-2xl flex items-center justify-between active:scale-[0.98] transition-transform hover:bg-stone-800"
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center relative">
+                <div className="w-8 h-8 bg-white/15 rounded-lg flex items-center justify-center relative">
                   <ShoppingCart className="w-3.5 h-3.5" />
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-orange-500 rounded-full text-[8px] font-black flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 bg-orange-500 rounded-full text-[8px] font-black flex items-center justify-center shadow-sm">
                     {cartItemCount}
                   </span>
                 </div>
                 <span>View Order</span>
               </div>
-              <span className="text-sm tracking-tighter">
+              <span className="text-sm tabular-nums tracking-tight">
                 {formatCurrency(cartSubtotal.toString())}
               </span>
             </button>
@@ -1064,9 +1077,8 @@ export default function GuestMenu({
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl max-h-[85vh] flex flex-col"
+              className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[85vh] flex flex-col"
             >
-              {/* Handle */}
               <div className="flex justify-center pt-3 pb-2">
                 <div className="w-10 h-1 bg-stone-200 rounded-full" />
               </div>
@@ -1078,7 +1090,7 @@ export default function GuestMenu({
                   </h3>
                   <button
                     onClick={() => setIsCheckoutOpen(false)}
-                    className="w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center"
+                    className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center hover:bg-stone-200 transition-colors"
                   >
                     <X className="w-4 h-4 text-stone-500" />
                   </button>
@@ -1097,7 +1109,7 @@ export default function GuestMenu({
                         entry.qty;
                     return (
                       <div key={id} className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-stone-100 rounded-xl flex items-center justify-center text-xs font-black text-stone-500 shrink-0">
+                        <div className="w-9 h-9 bg-stone-100 rounded-lg flex items-center justify-center text-xs font-black text-stone-500 shrink-0 tabular-nums">
                           {entry.qty}x
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1110,7 +1122,7 @@ export default function GuestMenu({
                             </p>
                           )}
                         </div>
-                        <span className="text-sm font-black text-stone-900">
+                        <span className="text-sm font-black text-stone-900 tabular-nums">
                           {formatCurrency(itemTotal.toString())}
                         </span>
                       </div>
@@ -1168,7 +1180,7 @@ export default function GuestMenu({
                         setIsPromoValidating(false);
                       }}
                       disabled={isPromoValidating || !promoCodeInput.trim()}
-                      className="bg-stone-900 text-white px-5 rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-50"
+                      className="bg-stone-900 text-white px-5 rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-50 hover:bg-stone-800 transition-colors"
                     >
                       {isPromoValidating ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -1187,7 +1199,7 @@ export default function GuestMenu({
                       <span className="text-[10px] font-black text-green-700 uppercase">
                         Applied: {appliedPromo.promoCode?.code}
                       </span>
-                      <span className="text-xs font-black text-green-700">
+                      <span className="text-xs font-black text-green-700 tabular-nums">
                         -{formatCurrency(appliedPromo.discount!.toString())}
                       </span>
                     </div>
@@ -1208,13 +1220,13 @@ export default function GuestMenu({
                           setCustomTipAmount("");
                         }}
                         className={cn(
-                          "flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all",
+                          "flex-1 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all",
                           selectedTip === v && !customTipAmount
                             ? "bg-stone-900 text-white border-stone-900"
-                            : "bg-white text-stone-400 border-stone-200",
+                            : "bg-white text-stone-400 border-stone-200 hover:border-stone-300",
                         )}
                       >
-                        {v === 0 ? "None" : `${v}`}
+                        {v === 0 ? "None" : `ETB ${v}`}
                       </button>
                     ))}
                   </div>
@@ -1224,13 +1236,13 @@ export default function GuestMenu({
                 <div className="space-y-2 mb-6">
                   <div className="flex justify-between text-xs text-stone-400">
                     <span>Subtotal</span>
-                    <span className="font-bold">
+                    <span className="font-bold tabular-nums">
                       {formatCurrency(cartSubtotal.toString())}
                     </span>
                   </div>
                   <div className="flex justify-between text-xs text-stone-400">
                     <span>VAT ({(vatRate * 100).toFixed(0)}%)</span>
-                    <span className="font-bold">
+                    <span className="font-bold tabular-nums">
                       {formatCurrency(vatAmount.toFixed(2))}
                     </span>
                   </div>
@@ -1238,14 +1250,14 @@ export default function GuestMenu({
                     <span>
                       Service ({(serviceChargeRate * 100).toFixed(0)}%)
                     </span>
-                    <span className="font-bold">
+                    <span className="font-bold tabular-nums">
                       {formatCurrency(serviceAmount.toFixed(2))}
                     </span>
                   </div>
                   {discountAmount > 0 && (
                     <div className="flex justify-between text-xs text-green-600">
                       <span>Discount</span>
-                      <span className="font-bold">
+                      <span className="font-bold tabular-nums">
                         -{formatCurrency(discountAmount.toString())}
                       </span>
                     </div>
@@ -1253,7 +1265,7 @@ export default function GuestMenu({
                   {selectedTip > 0 && (
                     <div className="flex justify-between text-xs text-stone-400">
                       <span>Tip</span>
-                      <span className="font-bold">
+                      <span className="font-bold tabular-nums">
                         {formatCurrency(selectedTip.toString())}
                       </span>
                     </div>
@@ -1262,7 +1274,7 @@ export default function GuestMenu({
                     <span className="text-sm font-black text-stone-900 uppercase tracking-widest">
                       Total
                     </span>
-                    <span className="text-xl font-black text-stone-900 tracking-tighter">
+                    <span className="text-xl font-black text-stone-900 tabular-nums tracking-tighter">
                       {formatCurrency(cartTotal.toString())}
                     </span>
                   </div>
@@ -1273,7 +1285,7 @@ export default function GuestMenu({
                   <button
                     onClick={() => placeOrderMutation.mutate("cash")}
                     disabled={placeOrderMutation.isPending}
-                    className="w-full bg-stone-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-transform"
+                    className="w-full bg-stone-900 text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-transform hover:bg-stone-800"
                   >
                     {placeOrderMutation.isPending ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -1288,7 +1300,6 @@ export default function GuestMenu({
         )}
       </AnimatePresence>
 
-      {/* Service Request Buttons */}
       {!activeOrderId && (
         <ServiceRequestButton
           hotelId={hotelId}
@@ -1297,7 +1308,6 @@ export default function GuestMenu({
         />
       )}
 
-      {/* Modifier Sheet */}
       {modifierItem && (
         <ItemModifierSheet
           itemId={modifierItem.id}
@@ -1308,7 +1318,6 @@ export default function GuestMenu({
         />
       )}
 
-      {/* Detail Sheet */}
       {detailItem && (
         <ItemDetailSheet
           item={{

@@ -14,7 +14,6 @@ export async function GET(
 
   const { id: tableId } = await params;
   
-  // 1. Fetch table and hotel info
   const [tableInfo] = await db
     .select({
       tableNumber: tables.tableNumber,
@@ -27,8 +26,11 @@ export async function GET(
 
   if (!tableInfo) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  // 2. Generate QR with the slug
-  const qrDataUrl = await generateTableQR(tableInfo.hotelSlug, tableInfo.tableId);
+  const protocol = req.headers.get("x-forwarded-proto") || "http";
+  const host = req.headers.get("host") || process.env.NEXT_PUBLIC_APP_URL || "localhost:3005";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `${protocol}://${host}`;
+
+  const qrDataUrl = await generateTableQR(tableInfo.hotelSlug, tableInfo.tableId, baseUrl);
   
   if (!qrDataUrl) return NextResponse.json({ error: "Failed to generate QR" }, { status: 500 });
 

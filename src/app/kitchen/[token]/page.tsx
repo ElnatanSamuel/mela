@@ -14,6 +14,8 @@ import {
   VolumeX,
   Lock,
   AlertCircle,
+  Clock,
+  Timer,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -39,11 +41,14 @@ interface Order {
   items?: OrderItem[];
 }
 
-function TimeAgo({ time, isNew }: { time: string; isNew?: boolean }) {
+function OrderTime({ createdAt, showTimer }: { createdAt: string; showTimer: boolean }) {
+  const time = new Date(createdAt);
+  const hh = time.getHours().toString().padStart(2, "0");
+  const mm = time.getMinutes().toString().padStart(2, "0");
   const [elapsed, setElapsed] = useState("");
   useEffect(() => {
     const tick = () => {
-      const diff = Math.floor((Date.now() - new Date(time).getTime()) / 1000);
+      const diff = Math.floor((Date.now() - time.getTime()) / 1000);
       const m = Math.floor(diff / 60);
       const s = diff % 60;
       setElapsed(`${m}:${s.toString().padStart(2, "0")}`);
@@ -51,12 +56,27 @@ function TimeAgo({ time, isNew }: { time: string; isNew?: boolean }) {
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [time]);
+  }, [createdAt]);
   const mins = parseInt(elapsed.split(":")[0]);
+  if (!showTimer) {
+    return (
+      <span className="tabular-nums font-mono text-xs text-muted-foreground">
+        {hh}:{mm}
+      </span>
+    );
+  }
   return (
-    <span className={cn("tabular-nums font-mono text-xs font-bold transition-colors", isNew && "animate-pulse", mins >= 10 ? "text-red-500" : mins >= 5 ? "text-orange-500" : "text-neutral-500")}>
-      {elapsed}
-    </span>
+    <div className="flex items-center gap-2">
+      <span className="tabular-nums font-mono text-xs text-muted-foreground">
+        {hh}:{mm}
+      </span>
+      <span className={cn(
+        "tabular-nums font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-sm",
+        mins >= 10 ? "bg-red-500/10 text-red-500" : mins >= 5 ? "bg-orange-500/10 text-orange-500" : "bg-muted text-muted-foreground"
+      )}>
+        {elapsed}
+      </span>
+    </div>
   );
 }
 
@@ -68,7 +88,7 @@ export default function KitchenTokenPage() {
   const [hotelData, setHotelData] = useState<{ hotelId: string; hotelName: string } | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const prevOrderCount = React.useRef(orders.length);
+  const readyTimestamps = useRef<Map<string, number>>(new Map());
 
   const todayStart = useCallback(() => {
     const d = new Date();
@@ -84,25 +104,61 @@ export default function KitchenTokenPage() {
     return items.slice(0, 15);
   }, []);
 
-  const mergeOrder = useCallback((prev: Order[], updated: Order) => {
-    return prev.map((o) => (o.id === updated.id ? updated : o));
+  const upsertOrder = useCallback((prev: Order[], updated: Partial<Order>) => {
+    const idx = prev.findIndex((o) => o.id === updated.id);
+    if (idx >= 0) {
+      const next = [...prev];
+      // Merge — preserve items and tableNumber from existing state
+      // since Realtime payloads don't include joined data
+      next[idx] = { ...next[idx], ...updated };
+      return next;
+    }
+    return [updated as Order, ...prev];
   }, []);
 
-  // Auto-dismiss Ready orders after 2 minutes
+  const mergeOrders = useCallback((prev: Order[], fetched: Order[]) => {
+    let result = [...prev];
+    for (const f of fetched) {
+      const idx = result.findIndex((o) => o.id === f.id);
+      if (idx >= 0) result[idx] = f;
+      else result.push(f);
+    }
+    return result;
+  }, []);
+
+  // Auto-dismiss Ready orders using client-side timestamps
   useEffect(() => {
     const id = setInterval(() => {
-      setOrders((prev) => {
-        const now = Date.now();
-        return prev.filter((o) => {
-          if (o.status !== "served") return true;
-          return now - new Date(o.created_at).getTime() < 300000;
-        });
+      const now = Date.now();
+      readyTimestamps.current.forEach((ts, orderId) => {
+        if (now - ts >= 300000) {
+          readyTimestamps.current.delete(orderId);
+        }
       });
-    }, 10000);
+      setOrders((prev) =>
+        prev.filter((o) => {
+          if (o.status !== "served") return true;
+          const ts = readyTimestamps.current.get(o.id);
+          if (!ts) return false;
+          return now - ts < 300000;
+        })
+      );
+    }, 5000);
     return () => clearInterval(id);
   }, []);
 
-  // Step 1: Load hotel
+  // Track when orders enter Ready (served) status
+  const trackReady = useCallback((order: Order) => {
+    if (order.status === "served" && !readyTimestamps.current.has(order.id)) {
+      readyTimestamps.current.set(order.id, Date.now());
+    }
+  }, []);
+
+  // On every orders state change, ensure ready orders are tracked
+  useEffect(() => {
+    orders.forEach(trackReady);
+  }, [orders, trackReady]);
+
   const { data: hotel, isLoading: hotelLoading, error: hotelError } = useQuery<Hotel>({
     queryKey: ["kitchen-hotel", token],
     queryFn: async () => {
@@ -113,7 +169,6 @@ export default function KitchenTokenPage() {
     enabled: !!token,
   });
 
-  // Step 2: Verify PIN + create session
   const verifyPinMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch("/api/auth/verify-pin", {
@@ -136,12 +191,10 @@ export default function KitchenTokenPage() {
     },
   });
 
-  // When hotel loads, go to PIN step
   useEffect(() => {
     if (hotel && step === "hotel") setStep("pin");
   }, [hotel, step]);
 
-  // Step 3: Fetch orders
   useEffect(() => {
     if (!hotelData) return;
     const fetchOrders = async () => {
@@ -149,16 +202,17 @@ export default function KitchenTokenPage() {
         const res = await fetch(`/api/orders?hotelId=${hotelData.hotelId}&active=true`);
         if (res.ok) {
           const all = await res.json();
-          setOrders(all.filter((o: Order) => isToday(o.created_at)));
+          const todayOrders = all.filter((o: Order) => isToday(o.created_at));
+          todayOrders.forEach(trackReady);
+          setOrders((prev) => mergeOrders(prev, todayOrders));
         }
       } catch {}
     };
     fetchOrders();
-    const id = setInterval(fetchOrders, 30000);
+    const id = setInterval(fetchOrders, 60000);
     return () => clearInterval(id);
-  }, [hotelData, isToday]);
+  }, [hotelData, isToday, mergeOrders, trackReady]);
 
-  // Realtime
   useEffect(() => {
     if (!hotelData) return;
     const channel = supabase
@@ -167,6 +221,7 @@ export default function KitchenTokenPage() {
         if (payload.eventType === "INSERT") {
           const newOrder = payload.new as Order;
           if (!isToday(newOrder.created_at)) return;
+          trackReady(newOrder);
           setOrders((prev) => trimColumn([newOrder, ...prev]));
           if (soundEnabled) {
             try {
@@ -182,12 +237,14 @@ export default function KitchenTokenPage() {
             } catch {}
           }
         } else if (payload.eventType === "UPDATE") {
-          setOrders((prev) => mergeOrder(prev, payload.new as Order));
+          const updated = payload.new as Order;
+          trackReady(updated);
+          setOrders((prev) => upsertOrder(prev, updated));
         }
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [hotelData, soundEnabled, isToday, trimColumn, mergeOrder]);
+  }, [hotelData, soundEnabled, isToday, trimColumn, upsertOrder, trackReady]);
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -202,14 +259,37 @@ export default function KitchenTokenPage() {
       }
       return res.json();
     },
-    onSuccess: (updated) => setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o))),
+    onMutate: async ({ id, status }) => {
+      setOrders((prev) =>
+        prev.map((o) => {
+          if (o.id !== id) return o;
+          const updated = { ...o, status: status as Order["status"] };
+          trackReady(updated);
+          return updated;
+        })
+      );
+    },
+    onError: () => {
+      if (hotelData) {
+        fetch(`/api/orders?hotelId=${hotelData.hotelId}&active=true`)
+          .then((r) => r.json())
+          .then((all) => {
+            const todayOrders = all.filter((o: Order) => isToday(o.created_at));
+            todayOrders.forEach(trackReady);
+            setOrders((prev) => mergeOrders(prev, todayOrders));
+          })
+          .catch(() => {});
+      }
+    },
   });
 
   const getNextStatus = (s: string) => s === "pending" || s === "confirmed" ? "preparing" : s === "preparing" ? "served" : null;
   const getButtonLabel = (s: string) => s === "pending" || s === "confirmed" ? "Start" : s === "preparing" ? "Ready" : "";
-  const getButtonColor = (s: string) => s === "pending" || s === "confirmed" ? "bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/20" : "bg-green-500 hover:bg-green-600 text-white shadow-lg shadow-green-500/20";
+  const getButtonColor = (s: string) =>
+    s === "pending" || s === "confirmed"
+      ? "bg-orange-500 hover:bg-orange-600 text-white"
+      : "bg-green-500 hover:bg-green-600 text-white";
 
-  // --- Loading ---
   if (hotelLoading || step === "hotel") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -218,7 +298,6 @@ export default function KitchenTokenPage() {
     );
   }
 
-  // --- Not found ---
   if (hotelError || !hotel) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
@@ -233,7 +312,6 @@ export default function KitchenTokenPage() {
     );
   }
 
-  // --- PIN Entry ---
   if (step === "pin") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -242,7 +320,6 @@ export default function KitchenTokenPage() {
             <h1 className="text-xl font-black text-foreground uppercase tracking-tight">{hotel.name}</h1>
             <p className="text-xs text-muted-foreground mt-1 uppercase tracking-widest font-bold">Kitchen Display</p>
           </div>
-
           <div className="space-y-4">
             <div>
               <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-2">Enter PIN</label>
@@ -257,9 +334,7 @@ export default function KitchenTokenPage() {
                 className="w-full bg-card border border-border rounded-xl py-3 px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-orange-500 tracking-[0.5em] font-mono text-center text-lg"
               />
             </div>
-
             {pinError && <p className="text-xs font-bold text-red-500 text-center">{pinError}</p>}
-
             <button
               onClick={() => verifyPinMutation.mutate()}
               disabled={pin.length < 4 || verifyPinMutation.isPending}
@@ -273,7 +348,6 @@ export default function KitchenTokenPage() {
     );
   }
 
-  // --- Kitchen Display ---
   const newOrders = orders.filter((o) => o.status === "pending" || o.status === "confirmed");
   const preparing = orders.filter((o) => o.status === "preparing");
   const ready = orders.filter((o) => o.status === "served");
@@ -308,102 +382,89 @@ export default function KitchenTokenPage() {
     },
   ];
 
-  const isLessThan20s = (time: string) => Date.now() - new Date(time).getTime() < 20000;
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
+      <div className="flex items-center justify-between px-6 py-3 border-b border-border shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-orange-500 rounded-xl flex items-center justify-center">
-            <ChefHat className="w-5 h-5 text-white" />
+          <div className="w-8 h-8 bg-orange-500 rounded-[4px] flex items-center justify-center">
+            <ChefHat className="w-4 h-4 text-white" />
           </div>
           <div>
             <h1 className="text-sm font-black uppercase tracking-tight text-foreground">{hotelData?.hotelName}</h1>
             <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Kitchen Display</p>
           </div>
-          <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground bg-muted px-2 py-1 rounded-md ml-2">
+          <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground bg-muted px-2 py-0.5 rounded-[2px] ml-2">
             {newOrders.length + preparing.length + ready.length}
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => setSoundEnabled(!soundEnabled)}
-            className={cn("w-9 h-9 rounded-lg flex items-center justify-center transition-colors", soundEnabled ? "bg-orange-500/10 text-orange-500" : "bg-muted text-muted-foreground")}>
-            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-          </button>
-        </div>
+        <button onClick={() => setSoundEnabled(!soundEnabled)}
+          className={cn("w-8 h-8 rounded-[4px] flex items-center justify-center transition-colors", soundEnabled ? "bg-orange-500/10 text-orange-500" : "bg-muted text-muted-foreground")}>
+          {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+        </button>
       </div>
 
       {/* Columns */}
       <div className="flex-1 flex gap-3 p-3 overflow-x-auto">
         {columns.map((col) => (
-          <div key={col.label} className="flex-1 min-w-[300px] flex flex-col">
-            <div className={cn("flex items-center gap-2 px-4 py-2.5 rounded-lg mb-3", col.bg, "border", col.border)}>
+          <div key={col.label} className="flex-1 min-w-[280px] flex flex-col">
+            {/* Column header */}
+            <div className={cn("flex items-center gap-2 px-3 py-2 rounded-[4px] mb-3", col.bg, "border", col.border)}>
               <div className={cn("w-2 h-2 rounded-full", col.dot)} />
-              <span className={cn("text-xs font-black uppercase tracking-widest", col.color)}>{col.label}</span>
-              <span className="ml-auto text-xs font-black text-muted-foreground">{col.orders.length}</span>
+              <span className={cn("text-[10px] font-black uppercase tracking-widest", col.color)}>{col.label}</span>
+              <span className="ml-auto text-[10px] font-black text-muted-foreground">{col.orders.length}</span>
             </div>
 
             <div className="flex-1 space-y-2 overflow-y-auto pr-1">
               <AnimatePresence mode="popLayout">
                 {col.orders.map((order) => {
                   const next = getNextStatus(order.status);
-                  const isUpdating = updateStatusMutation.isPending && updateStatusMutation.variables?.id === order.id;
-                  const isNew = col.label === "New" && isLessThan20s(order.created_at);
+                  const isNew = col.label === "New" && Date.now() - new Date(order.created_at).getTime() < 20000;
                   return (
                     <motion.div
                       key={order.id}
                       layout
-                      initial={{ opacity: 0, scale: 0.95, x: -20 }}
-                      animate={{ opacity: 1, scale: 1, x: 0 }}
-                      exit={{ opacity: 0, scale: 0.95, x: 50 }}
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
                       className={cn(
-                        "bg-card rounded-lg border border-border shadow-sm",
+                        "bg-card rounded-[4px] border border-border shadow-sm",
                         isNew && "border-l-2 border-l-orange-500"
                       )}
                     >
-                      <div className="p-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className={cn("text-base font-black text-foreground", isNew && "animate-pulse")}>
-                              Table {order.tableNumber || "?"}
-                            </span>
-                          </div>
-                          {col.showTimer && <TimeAgo time={order.created_at} isNew={isNew} />}
+                      <div className="p-2.5">
+                        {/* Row 1: Table number + Time */}
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className={cn("text-lg font-black text-foreground tracking-tight", isNew && "animate-pulse")}>
+                            #{order.tableNumber || "?"}
+                          </span>
+                          <OrderTime createdAt={order.created_at} showTimer={col.showTimer} />
                         </div>
 
-                        <div className="flex flex-wrap gap-1.5 mb-2">
+                        {/* Row 2: Items as a list */}
+                        <div className="space-y-0.5 mb-2">
                           {order.items?.map((item, idx) => (
-                            <span key={idx} className="inline-flex items-center gap-1 bg-muted text-foreground px-2 py-0.5 rounded text-[11px] font-bold">
-                              <span className="text-orange-500">{item.quantity}x</span>
-                              {item.name || `Item ${idx + 1}`}
-                            </span>
+                            <div key={idx} className="flex items-baseline gap-1.5 text-sm">
+                              <span className="font-bold text-orange-500 shrink-0 tabular-nums">{item.quantity}x</span>
+                              <span className="text-foreground font-medium truncate">{item.name || `Item ${idx + 1}`}</span>
+                            </div>
                           ))}
                           {!order.items?.length && (
-                            <span className="text-[11px] text-muted-foreground italic">Loading...</span>
+                            <span className="text-xs text-muted-foreground italic">Loading items...</span>
                           )}
                         </div>
 
+                        {/* Row 3: Action button (New → Start, Cooking → Ready) */}
                         {next && (
                           <button
                             onClick={() => updateStatusMutation.mutate({ id: order.id, status: next })}
-                            disabled={isUpdating}
                             className={cn(
-                              "w-full py-2 rounded-lg text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all active:scale-[0.98]",
+                              "w-full py-1.5 rounded-[3px] text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-1 transition-all active:scale-[0.97]",
                               getButtonColor(order.status)
                             )}
                           >
-                            {isUpdating ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <>{getButtonLabel(order.status)} <ChevronRight className="w-3.5 h-3.5" /></>
-                            )}
+                            {getButtonLabel(order.status)} <ChevronRight className="w-3 h-3" />
                           </button>
-                        )}
-                        {order.status === "served" && (
-                          <div className="flex items-center justify-center gap-1.5 text-green-500 text-[10px] font-black uppercase tracking-widest py-2">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Ready
-                          </div>
                         )}
                       </div>
                     </motion.div>
@@ -412,7 +473,7 @@ export default function KitchenTokenPage() {
               </AnimatePresence>
 
               {col.orders.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="flex flex-col items-center justify-center py-12 text-center">
                   <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center mb-2">
                     <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
                   </div>
